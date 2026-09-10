@@ -1,0 +1,138 @@
+@page "{id:int}"
+@model HRIS.Api.Pages.Payroll.DetailsModel
+@{
+    ViewData["Title"] = "Detail Payroll";
+}
+
+@if (Model.Period is not null)
+{
+    var p = Model.Period;
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Payroll @p.Month/@p.Year</h4>
+        <a asp-page="/Payroll/Index" class="btn btn-sm btn-outline-secondary">&larr; Kembali</a>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Status</div>
+                <div class="fs-5"><span class="status-@p.Status">@p.Status</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Level Saat Ini</div>
+                <div class="fs-5 fw-bold">@p.CurrentLevel</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Total Net Pay</div>
+                <div class="fs-5 fw-bold">@p.TotalNetPay.ToString("N0")</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Jumlah Karyawan</div>
+                <div class="fs-5 fw-bold">@p.Items.Count</div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CanActOnCurrentLevel && (p.Status == "InApproval" || p.Status == "Draft"))
+    {
+        <div class="card p-3 mb-3">
+            <h6>Tindak Lanjuti (Level @p.CurrentLevel)</h6>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <form method="post" asp-page-handler="Approve">
+                        <textarea name="note" class="form-control form-control-sm mb-1" placeholder="Catatan (opsional)"></textarea>
+                        <button type="submit" class="btn btn-success btn-sm w-100">Setujui</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" asp-page-handler="Reject">
+                        <textarea name="note" class="form-control form-control-sm mb-1" placeholder="Catatan (opsional)"></textarea>
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Tolak</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.IsAdmin && p.Status == "Approved")
+    {
+        <div class="card p-3 mb-3">
+            <form method="post" asp-page-handler="MarkPaid" onsubmit="return confirm('Tandai periode ini sudah dibayar?');">
+                <button type="submit" class="btn btn-primary btn-sm">Tandai Sudah Dibayar</button>
+            </form>
+        </div>
+    }
+
+    <div class="row g-3">
+        <div class="col-md-7">
+            <div class="card p-3">
+                <h6>Rincian Gaji per Karyawan</h6>
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Karyawan</th>
+                            <th>Gaji Pokok</th>
+                            <th>Tunjangan</th>
+                            <th>Potongan</th>
+                            <th>Gross</th>
+                            <th>Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in p.Items)
+                        {
+                            <tr>
+                                <td>@item.EmployeeName</td>
+                                <td>@item.BaseSalary.ToString("N0")</td>
+                                <td>@item.TotalAllowance.ToString("N0")</td>
+                                <td>@item.TotalDeduction.ToString("N0")</td>
+                                <td>@item.GrossPay.ToString("N0")</td>
+                                <td>@item.NetPay.ToString("N0")</td>
+                            </tr>
+                        }
+                        @if (!p.Items.Any())
+                        {
+                            <tr><td colspan="6" class="text-center text-muted py-3">Tidak ada item.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card p-3">
+                <h6>Riwayat Approval</h6>
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Approver</th>
+                            <th>Status</th>
+                            <th>Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in p.Approvals.OrderBy(a => a.Level))
+                        {
+                            <tr>
+                                <td>@a.Level</td>
+                                <td>@a.ApproverName</td>
+                                <td><span class="status-@a.Status">@a.Status</span></td>
+                                <td>@(a.Note ?? "-")</td>
+                            </tr>
+                        }
+                        @if (!p.Approvals.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-3">Belum ada approval.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

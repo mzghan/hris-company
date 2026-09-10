@@ -1,0 +1,41 @@
+@page "{id:int}"
+@model HRIS.Api.Pages.Employees.EditModel
+@{
+    ViewData["Title"] = "Edit Karyawan";
+}
+
+<h4 class="mb-3">Edit Karyawan</h4>
+
+<div class="card p-4" style="max-width: 600px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <p class="text-muted small">Email: @Model.EmployeeEmail (tidak bisa diubah)</p>
+    <form method="post">
+        <div class="mb-3">
+            <label class="form-label">Nama Lengkap</label>
+            <input asp-for="Input.FullName" class="form-control" />
+            <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Posisi</label>
+            <input asp-for="Input.Position" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Departemen</label>
+            <select asp-for="Input.DepartmentId" asp-items="Model.DepartmentOptions" class="form-select">
+                <option value="">-- Tanpa departemen --</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Manager (Atasan Langsung)</label>
+            <select asp-for="Input.ManagerId" asp-items="Model.ManagerOptions" class="form-select">
+                <option value="">-- Tidak ada atasan --</option>
+            </select>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="Input.IsActive" class="form-check-input" />
+            <label asp-for="Input.IsActive" class="form-check-label">Aktif</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        <a asp-page="/Employees/Index" class="btn btn-link">Batal</a>
+    </form>
+</div>

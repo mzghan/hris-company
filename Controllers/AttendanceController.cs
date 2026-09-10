@@ -18,17 +18,17 @@ public class AttendanceController : ControllerBase
     }
 
     [HttpPost("check-in")]
-    public async Task<ActionResult<AttendanceResponseDto>> CheckIn()
+    public async Task<ActionResult<AttendanceResponseDto>> CheckIn([FromBody] AttendanceCheckInDto dto)
     {
         var employeeId = User.GetEmployeeId();
-        return Ok(await _service.CheckInAsync(employeeId));
+        return Ok(await _service.CheckInAsync(employeeId, dto));
     }
 
     [HttpPost("check-out")]
-    public async Task<ActionResult<AttendanceResponseDto>> CheckOut()
+    public async Task<ActionResult<AttendanceResponseDto>> CheckOut([FromBody] AttendanceCheckOutDto dto)
     {
         var employeeId = User.GetEmployeeId();
-        return Ok(await _service.CheckOutAsync(employeeId));
+        return Ok(await _service.CheckOutAsync(employeeId, dto));
     }
 
     [HttpGet("me")]

@@ -63,4 +63,9 @@ public class EmployeeRepository : IEmployeeRepository
 
         return chain;
     }
+
+    public async Task<List<Employee>> GetActiveEmployeesAsync() =>
+        await _context.Employees
+            .Where(e => e.IsActive)
+            .ToListAsync();
 }

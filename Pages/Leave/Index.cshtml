@@ -1,0 +1,60 @@
+@page
+@model HRIS.Api.Pages.Leave.IndexModel
+@{
+    ViewData["Title"] = "Cuti Saya";
+}
+
+<h4 class="mb-3">Pengajuan Cuti Saya</h4>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h6>Ajukan Cuti Baru</h6>
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+            <form method="post">
+                <div class="mb-2">
+                    <label class="form-label small">Tanggal Mulai</label>
+                    <input asp-for="Input.StartDate" type="date" class="form-control form-control-sm" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Tanggal Selesai</label>
+                    <input asp-for="Input.EndDate" type="date" class="form-control form-control-sm" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Alasan</label>
+                    <textarea asp-for="Input.Reason" class="form-control form-control-sm" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">Ajukan</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card p-3">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Periode</th>
+                        <th>Alasan</th>
+                        <th>Status</th>
+                        <th>Level Saat Ini</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.MyRequests)
+                    {
+                        <tr>
+                            <td>@r.StartDate.ToString("dd MMM yyyy") - @r.EndDate.ToString("dd MMM yyyy")</td>
+                            <td>@(r.Reason ?? "-")</td>
+                            <td><span class="status-@r.Status">@r.Status</span></td>
+                            <td>@r.CurrentLevel</td>
+                        </tr>
+                    }
+                    @if (!Model.MyRequests.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada pengajuan cuti.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

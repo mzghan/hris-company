@@ -1,0 +1,93 @@
+@page
+@model HRIS.Api.Pages.Kpi.FillScoresModel
+@{
+    ViewData["Title"] = "Isi Nilai KPI";
+}
+
+@if (Model.Period is not null)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Isi Nilai KPI &mdash; @Model.Period.Name</h4>
+        <a asp-page="/Kpi/Periods" class="btn btn-sm btn-outline-secondary">&larr; Kembali</a>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="periodId" value="@Model.PeriodId" />
+            <div class="col-md-6">
+                <label class="form-label small">Pilih Karyawan</label>
+                <select name="employeeId" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Pilih karyawan --</option>
+                    @foreach (var opt in Model.EmployeeOptions)
+                    {
+                        if (Model.EmployeeId?.ToString() == opt.Value)
+                        {
+                            <option value="@opt.Value" selected>@opt.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@opt.Value">@opt.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+
+    @if (Model.EmployeeId is not null)
+    {
+        <div class="card p-3 mb-4" style="max-width: 500px;">
+            <h6>Nilai untuk: @Model.SelectedEmployeeName</h6>
+            @if (!Model.AllCriteria.Any())
+            {
+                <p class="text-muted small">Belum ada kriteria KPI. Tambahkan dulu di menu Kriteria KPI.</p>
+            }
+            else
+            {
+                <form method="post">
+                    <input type="hidden" asp-for="PeriodId" />
+                    <input type="hidden" asp-for="EmployeeId" />
+                    @for (int i = 0; i < Model.Scores.Count; i++)
+                    {
+                        <div class="mb-2">
+                            <label class="form-label small">@Model.Scores[i].CriteriaName</label>
+                            <input type="hidden" asp-for="Scores[i].CriteriaId" />
+                            <input type="hidden" asp-for="Scores[i].CriteriaName" />
+                            <input asp-for="Scores[i].Score" type="number" step="0.01" min="0" max="100" class="form-control form-control-sm" />
+                        </div>
+                    }
+                    <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">Simpan Nilai</button>
+                </form>
+            }
+        </div>
+    }
+
+    <h6>Progres Pengisian Periode Ini</h6>
+    <div class="card p-3">
+        <table class="table table-sm table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Karyawan</th>
+                    <th>Kriteria</th>
+                    <th>Skor</th>
+                    <th>Diisi Oleh</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.AllScoresForPeriod.OrderBy(s => s.EmployeeName).ThenBy(s => s.CriteriaName))
+                {
+                    <tr>
+                        <td>@s.EmployeeName</td>
+                        <td>@s.CriteriaName</td>
+                        <td>@s.Score</td>
+                        <td>@s.FilledByUsername</td>
+                    </tr>
+                }
+                @if (!Model.AllScoresForPeriod.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-3">Belum ada nilai yang diisi.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

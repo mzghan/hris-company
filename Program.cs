@@ -20,6 +20,11 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+builder.Services.AddScoped<IEmployeeSalaryRepository, EmployeeSalaryRepository>();
+builder.Services.AddScoped<IPayrollPeriodRepository, PayrollPeriodRepository>();
+builder.Services.AddScoped<IKpiCriteriaRepository, KpiCriteriaRepository>();
+builder.Services.AddScoped<IKpiPeriodRepository, KpiPeriodRepository>();
+builder.Services.AddScoped<IEmployeeKpiScoreRepository, EmployeeKpiScoreRepository>();
 
 // --- Services ---
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
@@ -28,11 +33,15 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+builder.Services.AddScoped<IEmployeeSalaryService, EmployeeSalaryService>();
+builder.Services.AddScoped<IPayrollService, PayrollService>();
+builder.Services.AddScoped<IKpiService, KpiService>();
 
-// --- Controllers ---
+// --- Controllers (API) + Razor Pages (frontend interaktif) ---
 builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 
-// --- JWT Authentication ---
+// --- JWT Authentication (dipakai oleh API, tetap default scheme) ---
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"]!;
 
@@ -53,6 +62,17 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
+})
+// Scheme kedua khusus untuk halaman Razor Pages (frontend), terpisah dari JWT
+// yang dipakai API. Login lewat form akan sign-in ke scheme "Cookies" ini,
+// sementara /api/** tetap divalidasi lewat JWT Bearer seperti sebelumnya.
+.AddCookie("Cookies", options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Cookie.Name = "HRIS.Auth";
 });
 
 builder.Services.AddAuthorization();
@@ -101,12 +121,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
 
 app.Run();
 

@@ -1,0 +1,251 @@
+@page
+@model HRIS.Api.Pages.Attendance.IndexModel
+@{
+    ViewData["Title"] = "Absensi";
+}
+
+<h4 class="mb-3">Absensi</h4>
+
+<div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <div class="text-muted small">Hari ini, @Model.TodayDate.ToString("dddd, dd MMMM yyyy") (WIB)</div>
+            @if (Model.Today is null)
+            {
+                <div>Belum check-in.</div>
+            }
+            else
+            {
+                <div>
+                    Check-in: <strong>@(Model.Today.CheckIn?.ToString(@"hh\:mm") ?? "-")</strong>
+                    &nbsp;|&nbsp;
+                    Check-out: <strong>@(Model.Today.CheckOut?.ToString(@"hh\:mm") ?? "-")</strong>
+                </div>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" onclick="openAttendanceCamera('in')" @(Model.Today?.CheckIn is not null ? "disabled" : "")>Check-in</button>
+            <button type="button" class="btn btn-warning" onclick="openAttendanceCamera('out')" @(Model.Today?.CheckIn is null || Model.Today?.CheckOut is not null ? "disabled" : "")>Check-out</button>
+        </div>
+    </div>
+    <div class="form-text mt-2">Check-in / check-out wajib mengambil foto dari kamera dan mengaktifkan lokasi (GPS).</div>
+</div>
+
+<!-- Form ini tidak punya tombol submit sendiri; disubmit lewat JS setelah foto+lokasi diambil di modal kamera. -->
+<form id="formCheckIn" method="post" asp-page-handler="CheckIn" class="d-none">
+    <input type="hidden" name="PhotoBase64" />
+    <input type="hidden" name="Latitude" />
+    <input type="hidden" name="Longitude" />
+</form>
+<form id="formCheckOut" method="post" asp-page-handler="CheckOut" class="d-none">
+    <input type="hidden" name="PhotoBase64" />
+    <input type="hidden" name="Latitude" />
+    <input type="hidden" name="Longitude" />
+</form>
+
+<h6>Riwayat Absensi</h6>
+<div class="card p-3">
+    <table class="table table-hover mb-0 align-middle">
+        <thead>
+            <tr>
+                <th>Tanggal</th>
+                <th>Check-in</th>
+                <th>Foto &amp; Lokasi (In)</th>
+                <th>Check-out</th>
+                <th>Foto &amp; Lokasi (Out)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.History)
+            {
+                <tr>
+                    <td>@a.Date.ToString("dd MMM yyyy")</td>
+                    <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
+                    <td>
+                        @if (a.CheckInPhotoUrl is not null)
+                        {
+                            <a href="@a.CheckInPhotoUrl" target="_blank">
+                                <img src="@a.CheckInPhotoUrl" alt="Foto check-in" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" />
+                            </a>
+                        }
+                        @if (a.CheckInLatitude is not null && a.CheckInLongitude is not null)
+                        {
+                            <a class="small ms-1" target="_blank"
+                               href="https://www.google.com/maps?q=@(a.CheckInLatitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)),@(a.CheckInLongitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                                Peta
+                            </a>
+                        }
+                    </td>
+                    <td>@(a.CheckOut?.ToString(@"hh\:mm") ?? "-")</td>
+                    <td>
+                        @if (a.CheckOutPhotoUrl is not null)
+                        {
+                            <a href="@a.CheckOutPhotoUrl" target="_blank">
+                                <img src="@a.CheckOutPhotoUrl" alt="Foto check-out" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" />
+                            </a>
+                        }
+                        @if (a.CheckOutLatitude is not null && a.CheckOutLongitude is not null)
+                        {
+                            <a class="small ms-1" target="_blank"
+                               href="https://www.google.com/maps?q=@(a.CheckOutLatitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)),@(a.CheckOutLongitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                                Peta
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.History.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat absensi.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal kamera untuk check-in / check-out -->
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cameraModalLabel">Ambil Foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <video id="cameraVideo" autoplay playsinline class="w-100 rounded bg-dark" style="max-height:320px;"></video>
+                <img id="capturedPreview" class="w-100 rounded d-none" style="max-height:320px;object-fit:contain;" />
+                <canvas id="cameraCanvas" class="d-none"></canvas>
+                <div id="locStatus" class="small text-muted mt-2">Mengambil lokasi...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="btnRetake" class="btn btn-outline-secondary d-none">Ambil Ulang</button>
+                <button type="button" id="btnCapture" class="btn btn-primary">Ambil Foto</button>
+                <button type="button" id="btnConfirm" class="btn btn-success d-none" disabled>Kirim Absen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var stream = null;
+    var pendingMode = null; // 'in' atau 'out'
+    var capturedDataUrl = null;
+    var capturedLat = null;
+    var capturedLng = null;
+
+    var modalEl = document.getElementById('cameraModal');
+    var modal = new bootstrap.Modal(modalEl);
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
+    var preview = document.getElementById('capturedPreview');
+    var btnCapture = document.getElementById('btnCapture');
+    var btnRetake = document.getElementById('btnRetake');
+    var btnConfirm = document.getElementById('btnConfirm');
+    var locStatus = document.getElementById('locStatus');
+    var modalTitle = document.getElementById('cameraModalLabel');
+
+    function stopStream() {
+        if (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            stream = null;
+        }
+    }
+
+    function updateConfirmState() {
+        btnConfirm.disabled = !(capturedDataUrl && capturedLat !== null && capturedLng !== null);
+    }
+
+    window.openAttendanceCamera = function (mode) {
+        pendingMode = mode;
+        capturedDataUrl = null;
+        capturedLat = null;
+        capturedLng = null;
+
+        modalTitle.textContent = (mode === 'in' ? 'Check-in' : 'Check-out') + ' — Ambil Foto';
+        video.classList.remove('d-none');
+        preview.classList.add('d-none');
+        btnCapture.classList.remove('d-none');
+        btnRetake.classList.add('d-none');
+        btnConfirm.classList.add('d-none');
+        btnConfirm.disabled = true;
+        locStatus.textContent = 'Mengambil lokasi...';
+        locStatus.className = 'small text-muted mt-2';
+
+        modal.show();
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            locStatus.textContent = 'Kamera tidak didukung di browser ini.';
+            locStatus.className = 'small text-danger mt-2';
+        } else {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+                .then(function (s) {
+                    stream = s;
+                    video.srcObject = stream;
+                })
+                .catch(function () {
+                    locStatus.textContent = 'Tidak bisa mengakses kamera. Izinkan akses kamera di browser.';
+                    locStatus.className = 'small text-danger mt-2';
+                });
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    capturedLat = pos.coords.latitude;
+                    capturedLng = pos.coords.longitude;
+                    locStatus.textContent = 'Lokasi didapat (akurasi ~' + Math.round(pos.coords.accuracy) + ' m).';
+                    locStatus.className = 'small text-success mt-2';
+                    updateConfirmState();
+                },
+                function () {
+                    locStatus.textContent = 'Lokasi ditolak/tidak tersedia. Aktifkan izin lokasi untuk bisa absen.';
+                    locStatus.className = 'small text-danger mt-2';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        } else {
+            locStatus.textContent = 'Geolocation tidak didukung di browser ini.';
+            locStatus.className = 'small text-danger mt-2';
+        }
+    };
+
+    btnCapture.addEventListener('click', function () {
+        if (!video.videoWidth) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        preview.src = capturedDataUrl;
+        preview.classList.remove('d-none');
+        video.classList.add('d-none');
+        btnCapture.classList.add('d-none');
+        btnRetake.classList.remove('d-none');
+        btnConfirm.classList.remove('d-none');
+        stopStream();
+        updateConfirmState();
+    });
+
+    btnRetake.addEventListener('click', function () {
+        openAttendanceCamera(pendingMode);
+    });
+
+    btnConfirm.addEventListener('click', function () {
+        if (btnConfirm.disabled) return;
+        var formId = pendingMode === 'in' ? 'formCheckIn' : 'formCheckOut';
+        var form = document.getElementById(formId);
+        form.querySelector('[name="PhotoBase64"]').value = capturedDataUrl;
+        form.querySelector('[name="Latitude"]').value = capturedLat;
+        form.querySelector('[name="Longitude"]').value = capturedLng;
+        stopStream();
+        form.submit();
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        stopStream();
+    });
+})();
+</script>
+}

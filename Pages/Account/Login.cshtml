@@ -1,0 +1,37 @@
+@page
+@model HRIS.Api.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4" style="width: 380px;">
+        <div class="text-center mb-3">
+            <h3 class="mb-0">HRIS</h3>
+            <small class="text-muted">Masuk ke akun kamu</small>
+        </div>
+
+        @if (Model.ErrorMessage != null)
+        {
+            <div class="alert alert-danger py-2">@Model.ErrorMessage</div>
+        }
+
+        <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input asp-for="Input.Username" class="form-control" autofocus />
+                <span asp-validation-for="Input.Username" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input asp-for="Input.Password" type="password" class="form-control" />
+                <span asp-validation-for="Input.Password" class="text-danger small"></span>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+
+        <p class="text-muted small mt-3 mb-0">
+            Belum punya akun? Hubungi Admin untuk dibuatkan akun (menu Karyawan &rarr; Buat Akun).
+        </p>
+    </div>
+</div>

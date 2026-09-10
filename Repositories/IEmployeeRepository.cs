@@ -14,4 +14,8 @@ public interface IEmployeeRepository
     // Dipakai saat generate rantai approval leave request:
     // ambil manager langsung, lalu manager-nya-manager, dst.
     Task<List<Employee>> GetManagerChainAsync(int employeeId, int maxLevels);
+
+    // Dipakai saat generate PayrollItem: hanya employee aktif yang
+    // dimasukkan ke PayrollPeriod baru.
+    Task<List<Employee>> GetActiveEmployeesAsync();
 }

@@ -1,0 +1,79 @@
+@page
+@model HRIS.Api.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h3 class="mb-1">Halo, @Model.Username 👋</h3>
+<p class="text-muted mb-4">Role kamu: <span class="badge bg-secondary">@Model.Role</span></p>
+
+<div class="row g-3">
+    @if (Model.Role == "Admin")
+    {
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small">Total Karyawan</div>
+                <div class="fs-3 fw-bold">@Model.TotalEmployees</div>
+                <a asp-page="/Employees/Index" class="small">Kelola karyawan &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (Model.Role is "Manager" or "Admin")
+    {
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small">Cuti Menunggu Approval Kamu</div>
+                <div class="fs-3 fw-bold">@Model.PendingLeaveApprovals</div>
+                <a asp-page="/Leave/Approvals" class="small">Lihat & tindak lanjuti &rarr;</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small">Payroll Menunggu Approval Kamu</div>
+                <div class="fs-3 fw-bold">@Model.PendingPayrollApprovals</div>
+                <a asp-page="/Payroll/Index" class="small">Lihat & tindak lanjuti &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @if (Model.HasEmployeeProfile)
+    {
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small">Absensi Hari Ini</div>
+                <div class="fs-5 fw-bold">
+                    @if (Model.CheckedOutToday)
+                    {
+                        <span class="text-success">Sudah check-in & check-out</span>
+                    }
+                    else if (Model.CheckedInToday)
+                    {
+                        <span class="text-warning">Sudah check-in, belum check-out</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Belum absen</span>
+                    }
+                </div>
+                <a asp-page="/Attendance/Index" class="small">Buka absensi &rarr;</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small">Pengajuan Cuti Saya (Pending)</div>
+                <div class="fs-3 fw-bold">@Model.MyPendingLeaveCount</div>
+                <a asp-page="/Leave/Index" class="small">Lihat / ajukan cuti &rarr;</a>
+            </div>
+        </div>
+    }
+    else if (Model.Role != "Admin")
+    {
+        <div class="col-12">
+            <div class="alert alert-warning">
+                Akun kamu belum terhubung ke data Employee, jadi fitur absensi & cuti belum bisa dipakai.
+                Hubungi Admin untuk menautkan akun ini ke data Employee.
+            </div>
+        </div>
+    }
+</div>

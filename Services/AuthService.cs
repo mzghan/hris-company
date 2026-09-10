@@ -70,6 +70,7 @@ public class AuthService : IAuthService
         return new AuthResponseDto
         {
             Token = token,
+            UserId = user.Id,
             Username = user.Username,
             Role = user.Role.ToString(),
             EmployeeId = user.EmployeeId,

@@ -10,4 +10,14 @@ public class Attendance
     public DateOnly Date { get; set; }
     public TimeSpan? CheckIn { get; set; }
     public TimeSpan? CheckOut { get; set; }
+
+    // --- Bukti check-in: foto dari kamera + koordinat GPS ---
+    public string? CheckInPhotoPath { get; set; }
+    public double? CheckInLatitude { get; set; }
+    public double? CheckInLongitude { get; set; }
+
+    // --- Bukti check-out: foto dari kamera + koordinat GPS ---
+    public string? CheckOutPhotoPath { get; set; }
+    public double? CheckOutLatitude { get; set; }
+    public double? CheckOutLongitude { get; set; }
 }

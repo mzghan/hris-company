@@ -3,6 +3,7 @@ using System;
 using HRIS.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -12,6 +13,7 @@ namespace HRIS.Api.Migrations
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
+        /// <inheritdoc />
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -26,7 +28,25 @@ namespace HRIS.Api.Migrations
                     b.Property<TimeSpan?>("CheckIn")
                         .HasColumnType("TEXT");
 
+                    b.Property<double?>("CheckInLatitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("CheckInLongitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CheckInPhotoPath")
+                        .HasColumnType("TEXT");
+
                     b.Property<TimeSpan?>("CheckOut")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("CheckOutLatitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("CheckOutLongitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CheckOutPhotoPath")
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Date")
@@ -102,6 +122,155 @@ namespace HRIS.Api.Migrations
                     b.ToTable("Employees");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.EmployeeKpiScore", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CriteriaId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("FilledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FilledByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KpiPeriodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Score")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriteriaId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("FilledByUserId");
+
+                    b.HasIndex("KpiPeriodId", "EmployeeId", "CriteriaId")
+                        .IsUnique();
+
+                    b.ToTable("EmployeeKpiScores");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.EmployeeSalary", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("AllowanceTotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("EmployeeSalaries");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.KpiCriteria", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Weight")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("KpiCriteria");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.KpiPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name", "Year")
+                        .IsUnique();
+
+                    b.ToTable("KpiPeriods");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.KpiScoreRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EmployeeKpiScoreId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("NewScore")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PreviousScore")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RevisedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RevisedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeKpiScoreId");
+
+                    b.HasIndex("RevisedByUserId");
+
+                    b.ToTable("KpiScoreRevisions");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.LeaveApproval", b =>
                 {
                     b.Property<int>("Id")
@@ -173,6 +342,107 @@ namespace HRIS.Api.Migrations
                     b.ToTable("LeaveRequests");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.PayrollApproval", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ActedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ApproverId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PayrollPeriodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApproverId");
+
+                    b.HasIndex("PayrollPeriodId");
+
+                    b.ToTable("PayrollApprovals");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.PayrollItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("GrossPay")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("NetPay")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PayrollPeriodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalAllowance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalDeduction")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("PayrollPeriodId");
+
+                    b.ToTable("PayrollItems");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.PayrollPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrentLevel")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Month", "Year")
+                        .IsUnique();
+
+                    b.ToTable("PayrollPeriods");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -233,6 +503,71 @@ namespace HRIS.Api.Migrations
                     b.Navigation("Manager");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.EmployeeKpiScore", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.KpiCriteria", "Criteria")
+                        .WithMany()
+                        .HasForeignKey("CriteriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.User", "FilledByUser")
+                        .WithMany()
+                        .HasForeignKey("FilledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.KpiPeriod", "KpiPeriod")
+                        .WithMany("Scores")
+                        .HasForeignKey("KpiPeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Criteria");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("FilledByUser");
+
+                    b.Navigation("KpiPeriod");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.EmployeeSalary", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.KpiScoreRevision", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.EmployeeKpiScore", "EmployeeKpiScore")
+                        .WithMany("Revisions")
+                        .HasForeignKey("EmployeeKpiScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.User", "RevisedByUser")
+                        .WithMany()
+                        .HasForeignKey("RevisedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeKpiScore");
+
+                    b.Navigation("RevisedByUser");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.LeaveApproval", b =>
                 {
                     b.HasOne("HRIS.Api.Models.Employee", "Approver")
@@ -263,6 +598,44 @@ namespace HRIS.Api.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.PayrollApproval", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.Employee", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApproverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.PayrollPeriod", "PayrollPeriod")
+                        .WithMany("Approvals")
+                        .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("PayrollPeriod");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.PayrollItem", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HRIS.Api.Models.PayrollPeriod", "PayrollPeriod")
+                        .WithMany("Items")
+                        .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("PayrollPeriod");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.User", b =>
                 {
                     b.HasOne("HRIS.Api.Models.Employee", "Employee")
@@ -283,9 +656,26 @@ namespace HRIS.Api.Migrations
                     b.Navigation("Subordinates");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.KpiPeriod", b =>
+                {
+                    b.Navigation("Scores");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.EmployeeKpiScore", b =>
+                {
+                    b.Navigation("Revisions");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.LeaveRequest", b =>
                 {
                     b.Navigation("Approvals");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.PayrollPeriod", b =>
+                {
+                    b.Navigation("Approvals");
+
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

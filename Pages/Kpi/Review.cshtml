@@ -1,0 +1,63 @@
+@page
+@model HRIS.Api.Pages.Kpi.ReviewModel
+@{
+    ViewData["Title"] = "Review KPI";
+}
+
+<h4 class="mb-3">Review KPI Bawahan</h4>
+
+<div class="card p-3 mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label small">Pilih Periode</label>
+            <select name="periodId" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Pilih periode --</option>
+                @foreach (var opt in Model.PeriodOptions)
+                {
+                    if (Model.PeriodId?.ToString() == opt.Value)
+                    {
+                        <option value="@opt.Value" selected>@opt.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@opt.Value">@opt.Text</option>
+                    }
+                }
+            </select>
+        </div>
+    </form>
+</div>
+
+@if (Model.PeriodId is not null)
+{
+    <div class="card p-3">
+        <h6>Bawahan Langsung &mdash; @Model.SelectedPeriodName</h6>
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Karyawan</th>
+                    <th>Skor Akhir</th>
+                    <th>Jumlah Kriteria Terisi</th>
+                    <th class="text-end">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.PendingReview)
+                {
+                    <tr>
+                        <td>@s.EmployeeName</td>
+                        <td>@s.FinalScore.ToString("N2")</td>
+                        <td>@s.Scores.Count</td>
+                        <td class="text-end">
+                            <a asp-page="/Kpi/ReviewDetail" asp-route-periodId="@Model.PeriodId" asp-route-employeeId="@s.EmployeeId" class="btn btn-sm btn-outline-primary">Lihat / Override</a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.PendingReview.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-3">Tidak ada bawahan dengan nilai KPI pada periode ini.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
