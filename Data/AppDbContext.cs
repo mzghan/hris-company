@@ -78,6 +78,9 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<EmailOutbox> EmailOutbox => Set<EmailOutbox>();
     public DbSet<Document> Documents => Set<Document>();
+    public DbSet<LearningMaterial> LearningMaterials => Set<LearningMaterial>();
+    public DbSet<Regulation> Regulations => Set<Regulation>();
+    public DbSet<AssistanceRequest> AssistanceRequests => Set<AssistanceRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -151,6 +154,9 @@ public class AppDbContext : DbContext
         MapTable<Notification>(modelBuilder, "TRX_Notification", "notification_id");
         MapTable<EmailOutbox>(modelBuilder, "TRX_Email_Outbox", "email_id");
         MapTable<Document>(modelBuilder, "TRX_Document", "document_id");
+        MapTable<LearningMaterial>(modelBuilder, "TRX_Learning_Material", "material_id");
+        MapTable<Regulation>(modelBuilder, "TRX_Regulation", "regulation_id");
+        MapTable<AssistanceRequest>(modelBuilder, "TRX_Assistance_Request", "request_id");
 
         // --- Enum disimpan sebagai string di SQLite, biar gampang dibaca manual saat debug ---
         modelBuilder.Entity<LeaveRequest>().Property(l => l.Status).HasConversion<string>();
@@ -353,6 +359,18 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<AuditLog>()
             .HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // --- Batch B: Learning, Regulation, EAP ---
+        modelBuilder.Entity<LearningMaterial>()
+            .HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<AssistanceRequest>()
+            .HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<AssistanceRequest>()
+            .HasOne(x => x.HandledByUser).WithMany().HasForeignKey(x => x.HandledByUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // --- KPI ---

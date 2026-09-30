@@ -1,0 +1,62 @@
+@page
+@model HRIS.Api.Pages.Expatriate.IndexModel
+@{
+    ViewData["Title"] = "Expatriate Portal";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h4 class="mb-1">Expatriate Portal</h4><div class="text-muted small">Passport, KITAS, KITAP, dan identitas pendukung ekspatriat.</div></div>
+</div>
+
+@if (Model.CanManage)
+{
+    <div class="card p-3 mb-3">
+        <h6>Daftar Ekspatriat</h6>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>NIK</th><th>Nama</th><th>Nationality</th><th>Identitas</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var employee in Model.Employees)
+                {
+                    <tr><td>@employee.EmployeeNumber</td><td>@employee.FullName</td><td>@employee.Nationality</td><td>@employee.Identities.Count</td><td class="text-end"><a asp-page="/Expatriate/Index" asp-route-employeeId="@employee.EmployeeId" class="btn btn-sm btn-outline-primary">Kelola</a></td></tr>
+                }
+                @if (!Model.Employees.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">Belum ada karyawan non-Indonesia.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.CurrentEmployee != null)
+{
+    <div class="card p-3">
+        <div class="d-flex justify-content-between"><div><h6 class="mb-1">@Model.CurrentEmployee.FullName</h6><div class="small text-muted">@Model.CurrentEmployee.EmployeeNumber · @Model.CurrentEmployee.Nationality</div></div></div>
+        <hr />
+        <table class="table table-hover align-middle">
+            <thead><tr><th>Tipe</th><th>Nomor</th><th>Berlaku Sampai</th><th>Primary</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.CurrentEmployee.Identities)
+            {
+                <tr><td>@item.IdentityTypeName</td><td>@item.IdentityNumber</td><td>@(item.ValidUntil?.ToString("dd/MM/yyyy") ?? "-")</td><td>@(item.IsPrimary ? "Ya" : "-")</td><td class="text-end"><form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" onsubmit="return confirm('Hapus identitas ini?');"><button class="btn btn-sm btn-outline-danger">Hapus</button></form></td></tr>
+            }
+            @if (!Model.CurrentEmployee.Identities.Any()) { <tr><td colspan="5" class="text-center text-muted">Belum ada identitas.</td></tr> }
+            </tbody>
+        </table>
+
+        <h6 class="mt-2">Tambah Identitas</h6>
+        <form method="post" asp-page-handler="Add">
+            <input type="hidden" name="employeeId" value="@Model.CurrentEmployee.EmployeeId" />
+            <div class="row g-2">
+                <div class="col-md-3"><select name="identityTypeId" asp-items="Model.IdentityTypeOptions" class="form-select" required><option value="">-- Tipe --</option></select></div>
+                <div class="col-md-3"><input name="identityNumber" class="form-control" placeholder="Nomor identitas" required /></div>
+                <div class="col-md-3"><input name="validUntil" type="date" class="form-control" /></div>
+                <div class="col-md-2 form-check pt-2 ps-5"><input name="isPrimary" value="true" class="form-check-input" type="checkbox" id="primary" /><label for="primary" class="form-check-label">Primary</label></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100">Tambah</button></div>
+            </div>
+        </form>
+    </div>
+}
+else if (!Model.CanManage)
+{
+    <div class="alert alert-info">Akun kamu belum merupakan karyawan ekspatriat berdasarkan nationality yang tersimpan di profil.</div>
+}

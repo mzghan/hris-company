@@ -55,7 +55,7 @@ public class DocumentRepository : IDocumentRepository
     public async Task<List<Document>> GetListAsync(int? categoryId, int? ownerEmployeeId, int? viewerEmployeeId, bool includeAllPersonal)
     {
         var query = _context.Documents
-            .Include(d => d.Category)
+            .Include(d => d.Category).ThenInclude(c => c.Parent)
             .Include(d => d.OwnerEmployee)
             .Where(d => d.IsActive);
 
@@ -77,7 +77,7 @@ public class DocumentRepository : IDocumentRepository
 
     public async Task<Document?> GetByIdAsync(int id) =>
         await _context.Documents
-            .Include(d => d.Category)
+            .Include(d => d.Category).ThenInclude(c => c.Parent)
             .Include(d => d.OwnerEmployee)
             .FirstOrDefaultAsync(d => d.Id == id);
 

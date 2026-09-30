@@ -290,7 +290,9 @@ public class DocumentService : IDocumentService
     {
         Id = d.Id,
         CategoryId = d.CategoryId,
-        CategoryName = d.Category?.Name ?? string.Empty,
+        CategoryName = d.Category?.Parent is null
+            ? d.Category?.Name ?? string.Empty
+            : $"{d.Category.Parent.Name} > {d.Category.Name}",
         Title = d.Title,
         FileName = d.FileName,
         ContentType = d.ContentType,

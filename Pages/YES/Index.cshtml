@@ -1,0 +1,19 @@
+@page
+@model HRIS.Api.Pages.YES.IndexModel
+@{
+    ViewData["Title"] = "YES";
+}
+
+<div class="card p-4 text-center">
+    <div class="display-6 mb-2">YES</div>
+    <p class="text-muted">Akses aplikasi YES perusahaan melalui tautan berikut.</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Url))
+    {
+        <div><a class="btn btn-primary" href="@Model.Url" target="_blank" rel="noopener noreferrer">Buka YES &rarr;</a></div>
+        <div class="small text-muted mt-2">@Model.Url</div>
+    }
+    else
+    {
+        <div class="alert alert-warning mb-0">URL YES belum dikonfigurasi. Atur <code>Yes:Url</code> di appsettings.json.</div>
+    }
+</div>

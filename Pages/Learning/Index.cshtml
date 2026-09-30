@@ -1,0 +1,62 @@
+@page
+@model HRIS.Api.Pages.Learning.IndexModel
+@{
+    ViewData["Title"] = "My Learning";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-1">My Learning</h4>
+        <div class="text-muted small">Materi pembelajaran perusahaan.</div>
+    </div>
+    @if (Model.CanManage)
+    {
+        <a asp-page="/Documents/Index" class="btn btn-outline-primary btn-sm">Kelola Dokumen Learning</a>
+    }
+</div>
+
+<div class="row g-3">
+    @foreach (var item in Model.Items)
+    {
+        <div class="col-md-6">
+            <div class="card p-3 h-100">
+                <h6 class="mb-1">@item.Title</h6>
+                @if (!string.IsNullOrWhiteSpace(item.Description))
+                {
+                    <p class="text-muted small mb-3">@item.Description</p>
+                }
+                <div class="small text-muted mb-3">@item.FileName · @((item.SizeBytes / 1024.0).ToString("N0")) KB</div>
+                <div class="mt-auto">
+                    <a asp-page="/Documents/Index" asp-page-handler="Download" asp-route-id="@item.DocumentId" class="btn btn-sm btn-primary">Buka Materi</a>
+                    @if (Model.CanManage)
+                    {
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline" onsubmit="return confirm('Nonaktifkan materi ini?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (!Model.Items.Any())
+    {
+        <div class="col-12"><div class="card p-4 text-center text-muted">Belum ada materi pembelajaran.</div></div>
+    }
+</div>
+
+@if (Model.CanManage)
+{
+    <div class="card p-3 mt-4">
+        <h6>Tambah Materi</h6>
+        <p class="small text-muted">Unggah file terlebih dahulu pada kategori <strong>Learning</strong> di halaman Dokumen, lalu pilih dokumen di bawah.</p>
+        <form method="post" asp-page-handler="Save">
+            <input type="hidden" name="id" value="0" />
+            <div class="row g-2">
+                <div class="col-md-4"><input name="title" class="form-control" placeholder="Judul materi" required /></div>
+                <div class="col-md-4"><input name="description" class="form-control" placeholder="Deskripsi singkat" /></div>
+                <div class="col-md-3"><select name="documentId" asp-items="Model.LearningDocumentOptions" class="form-select" required><option value="">-- Dokumen Learning --</option></select></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100">Simpan</button></div>
+            </div>
+        </form>
+    </div>
+}

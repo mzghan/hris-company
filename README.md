@@ -66,3 +66,23 @@ dotnet ef migrations add BatchA_Foundation
 dotnet run
 ```
 Database sebaiknya direset karena `TRX_Leave_Request` berubah dan data cuti lama tidak punya approval di engine.
+
+
+## Batch B: Konten (HR Forms, Regulation, Learning, YES, EAP, Expatriate)
+
+- **HR Forms (modul 15)** memakai `TRX_Document` + kategori `Forms`/subkategori yang sudah ada. Halaman `/Forms/Index` memberi daftar formulir dan upload untuk HR/Support.
+- **HR Regulation (modul 16)** memakai `TRX_Regulation`, CRUD untuk HR/Support, dan tampilan accordion untuk semua user login.
+- **My Learning Portal (modul 1)** memakai `TRX_Learning_Material` yang menunjuk ke `TRX_Document` kategori `Learning`. File tetap mengikuti storage/permission Batch A.
+- **YES (modul 20)** tidak membuat tabel baru. URL disimpan di `appsettings.json` pada `Yes:Url` dan ditampilkan di `/YES/Index`.
+- **EAP (modul 17)** memakai `TRX_Assistance_Request`. `employee_id` nullable untuk pengajuan anonim; identitas anonim tidak ditampilkan, termasuk untuk Support. HR/Support dapat memperbarui status.
+- **Expatriate Portal (modul 19)** memakai `MST_Employee_Identity` + `TRX_Document`/kategori Personal Documents. Ekspatriat ditentukan dari `nationality_country_id` yang bukan `ID`; identitas dapat dikelola oleh pemilik, HR, atau Support.
+
+### Migration Batch B
+
+```powershell
+Remove-Item hris.db* -Force -ErrorAction SilentlyContinue
+dotnet ef database update
+dotnet run
+```
+
+Jika database masih mengikuti Batch A, migration `BatchB_Content` membuat `TRX_Learning_Material`, `TRX_Regulation`, dan `TRX_Assistance_Request`. Seeder menambahkan contoh regulasi development.

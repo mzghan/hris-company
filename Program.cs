@@ -35,6 +35,10 @@ builder.Services.AddScoped<IApprovalRepository, ApprovalRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<ILearningMaterialRepository, LearningMaterialRepository>();
+builder.Services.AddScoped<IRegulationRepository, RegulationRepository>();
+builder.Services.AddScoped<IAssistanceRequestRepository, AssistanceRequestRepository>();
+builder.Services.AddScoped<IExpatriateRepository, ExpatriateRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ITransactionRunner, TransactionRunner>();
 
@@ -54,6 +58,10 @@ builder.Services.AddScoped<IApprovalHandler, LeaveApprovalHandler>();
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ILearningMaterialService, LearningMaterialService>();
+builder.Services.AddScoped<IRegulationService, RegulationService>();
+builder.Services.AddScoped<IAssistanceRequestService, AssistanceRequestService>();
+builder.Services.AddScoped<IExpatriateService, ExpatriateService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 

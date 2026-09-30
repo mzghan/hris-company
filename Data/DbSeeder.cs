@@ -226,6 +226,7 @@ public static class DbSeeder
 
         await SeedDocumentCategoriesAsync(db);
         await SeedApprovalFlowAsync(db);
+        await SeedBatchBContentAsync(db);
     }
 
     // Kategori awal dokumen (modul 1 Learning, 15 HR Forms, 16 Regulation, dokumen pribadi).
@@ -284,6 +285,29 @@ public static class DbSeeder
             HrRole(ApprovalRequestTypes.Parking, 1),
             HrRole(ApprovalRequestTypes.Laptop, 1));
 
+        await db.SaveChangesAsync();
+    }
+
+
+    // Seed awal Batch B untuk memberi contoh konten regulasi saat database development direset.
+    // Konten ini hanya data dummy dan boleh diubah/dihapus HR.
+    private static async Task SeedBatchBContentAsync(AppDbContext db)
+    {
+        if (await db.Regulations.AnyAsync()) return;
+
+        db.Regulations.AddRange(
+            new Regulation
+            {
+                Title = "Jam Kerja & Kehadiran",
+                Content = "Contoh regulasi development. Ganti dengan kebijakan perusahaan yang sebenarnya.",
+                SortOrder = 1
+            },
+            new Regulation
+            {
+                Title = "Penggunaan Fasilitas Perusahaan",
+                Content = "Contoh regulasi development. Ganti dengan kebijakan perusahaan yang sebenarnya.",
+                SortOrder = 2
+            });
         await db.SaveChangesAsync();
     }
 
