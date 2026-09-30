@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Kpi;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Manager,Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Policy = "ManagerOrHR")]
 public class ReviewDetailModel : PageModel
 {
     private readonly IKpiService _service;

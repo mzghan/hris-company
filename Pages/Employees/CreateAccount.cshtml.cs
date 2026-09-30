@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HRIS.Api.DTOs.Auth;
 using HRIS.Api.Exceptions;
-using HRIS.Api.Models.Enums;
 using HRIS.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +9,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace HRIS.Api.Pages.Employees;
 
 // Halaman frontend untuk endpoint POST /api/auth/register (Admin only).
-// Dipakai Admin untuk membuatkan akun login (Employee/Manager) yang
+// Dipakai HR/Support untuk membuatkan akun login yang
 // terhubung ke data Employee yang sudah ada.
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "HR,Support")]
 public class CreateAccountModel : PageModel
 {
     private readonly IAuthService _authService;
@@ -41,8 +40,9 @@ public class CreateAccountModel : PageModel
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
-        public UserRole Role { get; set; } = UserRole.Employee;
+        // Role tambahan di atas Employee (yang otomatis): kosong, "HR", atau "Support".
+        // "Support" hanya boleh diberikan oleh akun Support (dicek di AuthService).
+        public string? ExtraRole { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -74,14 +74,14 @@ public class CreateAccountModel : PageModel
             {
                 Username = Input.Username,
                 Password = Input.Password,
-                Role = Input.Role,
+                Roles = string.IsNullOrEmpty(Input.ExtraRole) ? new List<string>() : new List<string> { Input.ExtraRole },
                 EmployeeId = EmployeeId
-            });
+            }, User.IsInRole("Support"));
 
             TempData["Success"] = $"Akun '{Input.Username}' berhasil dibuat untuk karyawan ini.";
             return RedirectToPage("/Employees/Index");
         }
-        catch (BadRequestException ex)
+        catch (Exception ex) when (ex is BadRequestException or ForbiddenException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             await LoadEmployeeNameAsync();

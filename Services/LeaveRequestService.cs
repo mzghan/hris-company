@@ -33,7 +33,7 @@ public class LeaveRequestService : ILeaveRequestService
         var employee = await _employeeRepository.GetByIdAsync(employeeId)
             ?? throw new NotFoundException("Employee tidak ditemukan.");
 
-        // Susun rantai approver dengan menelusuri Employee.ManagerId ke atas,
+        // Susun rantai approver dengan menelusuri Direct Manager di MST_Employee_Hierarchy ke atas,
         // maksimal sebanyak _maxApprovalLevels. Kalau employee tidak punya
         // manager sama sekali, leave request langsung tidak punya approval
         // (kasus tepi yang perlu didiskusikan lagi kalau muncul di data nyata).

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Leave;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Manager,Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Policy = "ManagerOrHR")]
 public class ApprovalsModel : PageModel
 {
     private readonly ILeaveRequestService _service;

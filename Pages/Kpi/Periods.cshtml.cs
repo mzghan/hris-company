@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Kpi;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "HR,Support")]
 public class PeriodsModel : PageModel
 {
     private readonly IKpiService _service;

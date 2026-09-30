@@ -10,7 +10,7 @@ public interface IEmployeeKpiScoreRepository
     Task<EmployeeKpiScore?> GetByPeriodEmployeeCriteriaAsync(int kpiPeriodId, int employeeId, int criteriaId);
 
     // Semua EmployeeKpiScore pada satu periode, milik bawahan langsung
-    // dari managerEmployeeId (dicocokkan lewat Employee.ManagerId — pola
+    // dari managerEmployeeId (dicocokkan lewat Hierarchy (Direct Manager aktif) — pola
     // yang sama seperti dipakai LeaveApproval/PayrollApproval untuk
     // menentukan siapa yang berhak bertindak).
     Task<List<EmployeeKpiScore>> GetByPeriodForSubordinatesAsync(int kpiPeriodId, int managerEmployeeId);

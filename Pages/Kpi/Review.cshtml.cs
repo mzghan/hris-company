@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HRIS.Api.Pages.Kpi;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Manager,Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Policy = "ManagerOrHR")]
 public class ReviewModel : PageModel
 {
     private readonly IKpiService _service;

@@ -1,3 +1,4 @@
+using HRIS.Api.Common;
 using HRIS.Api.Data;
 using HRIS.Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +46,7 @@ public class EmployeeKpiScoreRepository : IEmployeeKpiScoreRepository
 
     public async Task<List<EmployeeKpiScore>> GetByPeriodForSubordinatesAsync(int kpiPeriodId, int managerEmployeeId) =>
         await BaseQuery()
-            .Where(s => s.KpiPeriodId == kpiPeriodId && s.Employee!.ManagerId == managerEmployeeId)
+            .Where(s => s.KpiPeriodId == kpiPeriodId && s.Employee!.Managers.Any(h => h.ManagerId == managerEmployeeId && h.EndDate == null && h.HierarchyType!.HierarchyTypeName == RefNames.DirectManager))
             .OrderBy(s => s.EmployeeId).ThenBy(s => s.CriteriaId)
             .ToListAsync();
 

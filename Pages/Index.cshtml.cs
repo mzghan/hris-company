@@ -11,47 +11,46 @@ public class IndexModel : PageModel
     private readonly IEmployeeService _employeeService;
     private readonly ILeaveRequestService _leaveService;
     private readonly IAttendanceService _attendanceService;
-    private readonly IPayrollService _payrollService;
 
     public IndexModel(
         IEmployeeService employeeService,
         ILeaveRequestService leaveService,
-        IAttendanceService attendanceService,
-        IPayrollService payrollService)
+        IAttendanceService attendanceService)
     {
         _employeeService = employeeService;
         _leaveService = leaveService;
         _attendanceService = attendanceService;
-        _payrollService = payrollService;
     }
 
     public string Role { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public bool HasEmployeeProfile { get; set; }
+    public bool IsHrOrSupport { get; set; }
+    public bool CanApprove { get; set; }
 
     public int? TotalEmployees { get; set; }
     public int? PendingLeaveApprovals { get; set; }
-    public int? PendingPayrollApprovals { get; set; }
     public int? MyPendingLeaveCount { get; set; }
     public bool CheckedInToday { get; set; }
     public bool CheckedOutToday { get; set; }
 
     public async Task OnGetAsync()
     {
-        Role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+        Role = string.Join(", ", User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value));
+        IsHrOrSupport = User.IsHrOrSupport();
+        CanApprove = IsHrOrSupport || User.IsManager();
         Username = User.Identity?.Name ?? string.Empty;
         HasEmployeeProfile = User.HasClaim(c => c.Type == "employeeId");
 
-        if (Role == "Admin")
+        if (IsHrOrSupport)
         {
             TotalEmployees = (await _employeeService.GetAllAsync()).Count;
         }
 
-        if (Role is "Manager" or "Admin" && HasEmployeeProfile)
+        if (CanApprove && HasEmployeeProfile)
         {
             var employeeId = User.GetEmployeeId();
             PendingLeaveApprovals = (await _leaveService.GetPendingForApproverAsync(employeeId)).Count;
-            PendingPayrollApprovals = (await _payrollService.GetPendingForApproverAsync(employeeId)).Count;
         }
 
         if (HasEmployeeProfile)

@@ -1,7 +1,7 @@
+using HRIS.Api.Common;
 using HRIS.Api.DTOs.Auth;
 using HRIS.Api.Exceptions;
 using HRIS.Api.Models;
-using HRIS.Api.Models.Enums;
 using HRIS.Api.Repositories;
 
 namespace HRIS.Api.Services;
@@ -25,32 +25,60 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, bool actorIsSupport)
     {
         if (await _userRepository.UsernameExistsAsync(dto.Username))
             throw new BadRequestException($"Username '{dto.Username}' sudah dipakai.");
 
-        if (dto.Role != UserRole.Admin)
-        {
-            if (dto.EmployeeId is null)
-                throw new BadRequestException("EmployeeId wajib diisi untuk role Employee/Manager.");
+        var roleNames = dto.Roles
+            .Select(r => r.Trim())
+            .Where(r => r.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-            var employee = await _employeeRepository.GetByIdAsync(dto.EmployeeId.Value)
+        var wantsSupport = roleNames.Contains(RoleNames.Support, StringComparer.OrdinalIgnoreCase);
+        if (wantsSupport && !actorIsSupport)
+            throw new ForbiddenException("Hanya akun Support yang boleh memberikan role Support.");
+
+        if (dto.EmployeeId is null)
+        {
+            // Akun tanpa Employee hanya untuk Support (mis. akun awal dari seed).
+            if (!wantsSupport)
+                throw new BadRequestException("EmployeeId wajib diisi kecuali untuk akun Support.");
+        }
+        else
+        {
+            _ = await _employeeRepository.GetByIdAsync(dto.EmployeeId.Value)
                 ?? throw new BadRequestException($"EmployeeId {dto.EmployeeId} tidak ditemukan.");
+
+            if (await _userRepository.EmployeeHasAccountAsync(dto.EmployeeId.Value))
+                throw new BadRequestException("Employee ini sudah punya akun login.");
+
+            // Employee = role dasar semua orang.
+            if (!roleNames.Contains(RoleNames.Employee, StringComparer.OrdinalIgnoreCase))
+                roleNames.Add(RoleNames.Employee);
+        }
+
+        var roles = await _userRepository.GetRolesByNamesAsync(roleNames);
+        if (roles.Count != roleNames.Count)
+        {
+            var unknown = roleNames.Where(n => !roles.Any(r => r.RoleName.Equals(n, StringComparison.OrdinalIgnoreCase)));
+            throw new BadRequestException($"Role tidak dikenal: {string.Join(", ", unknown)}.");
         }
 
         var user = new User
         {
             Username = dto.Username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = dto.Role,
             EmployeeId = dto.EmployeeId
         };
+        foreach (var role in roles)
+            user.UserRoles.Add(new UserRole { Role = role });
 
         await _userRepository.AddAsync(user);
-        _logger.LogInformation("User {Username} terdaftar dengan role {Role}", user.Username, user.Role);
+        _logger.LogInformation("User {Username} terdaftar dengan role {Roles}", user.Username, string.Join(",", roleNames));
 
-        return BuildResponse(user);
+        return await BuildResponseAsync(user);
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -61,18 +89,27 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             throw new BadRequestException("Username atau password salah.");
 
-        return BuildResponse(user);
+        if (!user.IsActive)
+            throw new BadRequestException("Akun ini sudah dinonaktifkan.");
+
+        await _userRepository.UpdateLastLoginAsync(user);
+        return await BuildResponseAsync(user);
     }
 
-    private AuthResponseDto BuildResponse(User user)
+    private async Task<AuthResponseDto> BuildResponseAsync(User user)
     {
-        var (token, expiresAt) = _jwtService.GenerateToken(user);
+        var roles = user.UserRoles.Select(ur => ur.Role!.RoleName).ToList();
+        var isManager = user.EmployeeId is not null
+            && await _employeeRepository.HasActiveSubordinatesAsync(user.EmployeeId.Value);
+
+        var (token, expiresAt) = _jwtService.GenerateToken(user, roles, isManager);
         return new AuthResponseDto
         {
             Token = token,
             UserId = user.Id,
             Username = user.Username,
-            Role = user.Role.ToString(),
+            Roles = roles,
+            IsManager = isManager,
             EmployeeId = user.EmployeeId,
             ExpiresAt = expiresAt
         };

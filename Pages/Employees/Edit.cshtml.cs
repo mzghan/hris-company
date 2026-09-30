@@ -9,16 +9,18 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HRIS.Api.Pages.Employees;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Admin")]
+// Hanya data pribadi. Perubahan jabatan/organisasi/grade/lokasi dan perubahan atasan
+// menyimpan riwayat, jadi lewat PUT /api/employees/{id}/employment dan /manager.
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "HR,Support")]
 public class EditModel : PageModel
 {
     private readonly IEmployeeService _employeeService;
-    private readonly IDepartmentService _departmentService;
+    private readonly IReferenceService _referenceService;
 
-    public EditModel(IEmployeeService employeeService, IDepartmentService departmentService)
+    public EditModel(IEmployeeService employeeService, IReferenceService referenceService)
     {
         _employeeService = employeeService;
-        _departmentService = departmentService;
+        _referenceService = referenceService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -27,19 +29,29 @@ public class EditModel : PageModel
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
-    public string EmployeeEmail { get; set; } = string.Empty;
+    public string EmployeeNumber { get; set; } = string.Empty;
+    public string? WorkEmail { get; set; }
 
-    public List<SelectListItem> DepartmentOptions { get; set; } = new();
-    public List<SelectListItem> ManagerOptions { get; set; } = new();
+    public List<SelectListItem> GenderOptions { get; set; } = new();
+    public List<SelectListItem> ReligionOptions { get; set; } = new();
+    public List<SelectListItem> MaritalStatusOptions { get; set; } = new();
+    public List<SelectListItem> CountryOptions { get; set; } = new();
 
     public class InputModel
     {
         [Required(ErrorMessage = "Nama wajib diisi.")]
         public string FullName { get; set; } = string.Empty;
 
-        public string? Position { get; set; }
-        public int? DepartmentId { get; set; }
-        public int? ManagerId { get; set; }
+        [DataType(DataType.Date)]
+        public DateOnly? BirthDate { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateOnly JoinDate { get; set; }
+
+        public int? NationalityCountryId { get; set; }
+        public int? ReligionId { get; set; }
+        public int? GenderId { get; set; }
+        public int? MaritalStatusId { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
@@ -48,13 +60,17 @@ public class EditModel : PageModel
         try
         {
             var employee = await _employeeService.GetByIdAsync(Id);
-            EmployeeEmail = employee.Email;
+            EmployeeNumber = employee.EmployeeNumber;
+            WorkEmail = employee.WorkEmail;
             Input = new InputModel
             {
                 FullName = employee.FullName,
-                Position = employee.Position,
-                DepartmentId = employee.DepartmentId,
-                ManagerId = employee.ManagerId,
+                BirthDate = employee.BirthDate,
+                JoinDate = employee.JoinDate,
+                NationalityCountryId = employee.NationalityCountryId,
+                ReligionId = employee.ReligionId,
+                GenderId = employee.GenderId,
+                MaritalStatusId = employee.MaritalStatusId,
                 IsActive = employee.IsActive
             };
         }
@@ -72,43 +88,61 @@ public class EditModel : PageModel
     {
         if (!ModelState.IsValid)
         {
+            await LoadHeaderAsync();
             await LoadOptionsAsync();
             return Page();
         }
 
         try
         {
-            var updated = await _employeeService.UpdateAsync(Id, new EmployeeUpdateDto
+            await _employeeService.UpdateAsync(Id, new EmployeeUpdateDto
             {
                 FullName = Input.FullName,
-                Position = Input.Position,
-                DepartmentId = Input.DepartmentId,
-                ManagerId = Input.ManagerId,
+                BirthDate = Input.BirthDate,
+                JoinDate = Input.JoinDate,
+                NationalityCountryId = Input.NationalityCountryId,
+                ReligionId = Input.ReligionId,
+                GenderId = Input.GenderId,
+                MaritalStatusId = Input.MaritalStatusId,
                 IsActive = Input.IsActive
             });
 
-            TempData["Success"] = $"Data karyawan '{updated.FullName}' berhasil diperbarui.";
+            TempData["Success"] = "Data karyawan berhasil diperbarui.";
             return RedirectToPage("/Employees/Index");
         }
         catch (Exception ex) when (ex is NotFoundException or BadRequestException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            await LoadHeaderAsync();
             await LoadOptionsAsync();
             return Page();
         }
     }
 
-    private async Task LoadOptionsAsync()
+    private async Task LoadHeaderAsync()
     {
-        var departments = await _departmentService.GetAllAsync();
-        DepartmentOptions = departments
-            .Select(d => new SelectListItem(d.Name, d.Id.ToString()))
+        try
+        {
+            var employee = await _employeeService.GetByIdAsync(Id);
+            EmployeeNumber = employee.EmployeeNumber;
+            WorkEmail = employee.WorkEmail;
+        }
+        catch (NotFoundException)
+        {
+            EmployeeNumber = "(tidak ditemukan)";
+        }
+    }
+
+    private async Task<List<SelectListItem>> OptionsAsync(string type) =>
+        (await _referenceService.GetOptionsAsync(type))
+            .Select(i => new SelectListItem(i.Name, i.Id.ToString()))
             .ToList();
 
-        var employees = await _employeeService.GetAllAsync();
-        ManagerOptions = employees
-            .Where(e => e.Id != Id)
-            .Select(e => new SelectListItem(e.FullName, e.Id.ToString()))
-            .ToList();
+    private async Task LoadOptionsAsync()
+    {
+        GenderOptions = await OptionsAsync("gender");
+        ReligionOptions = await OptionsAsync("religion");
+        MaritalStatusOptions = await OptionsAsync("maritalstatus");
+        CountryOptions = await OptionsAsync("country");
     }
 }

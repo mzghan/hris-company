@@ -4,5 +4,5 @@ namespace HRIS.Api.Services;
 
 public interface IJwtService
 {
-    (string token, DateTime expiresAt) GenerateToken(User user);
+    (string token, DateTime expiresAt) GenerateToken(User user, IEnumerable<string> roles, bool isManager);
 }

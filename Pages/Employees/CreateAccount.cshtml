@@ -22,11 +22,16 @@
             <span asp-validation-for="Input.Password" class="text-danger small"></span>
         </div>
         <div class="mb-3">
-            <label class="form-label">Role</label>
-            <select asp-for="Input.Role" class="form-select">
-                <option value="Employee">Employee</option>
-                <option value="Manager">Manager</option>
+            <label class="form-label">Role Tambahan</label>
+            <select asp-for="Input.ExtraRole" class="form-select">
+                <option value="">Employee saja</option>
+                <option value="HR">HR</option>
+                @if (User.IsInRole("Support"))
+                {
+                    <option value="Support">Support</option>
+                }
             </select>
+            <div class="form-text">Manager/Head/Group Head tidak perlu dipilih: otomatis dari struktur atasan.</div>
         </div>
         <button type="submit" class="btn btn-primary">Buat Akun</button>
         <a asp-page="/Employees/Index" class="btn btn-link">Batal</a>

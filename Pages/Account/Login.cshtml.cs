@@ -64,9 +64,17 @@ public class LoginModel : PageModel
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, result.UserId.ToString()),
-                new(ClaimTypes.Name, result.Username),
-                new(ClaimTypes.Role, result.Role)
+                new(ClaimTypes.Name, result.Username)
             };
+
+            claims.AddRange(result.Roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+            // Claim IsManager dibaca saat login (bukan role tersimpan); kalau atasan
+            // baru ditambahkan setelahnya, berlaku setelah login ulang.
+            if (result.IsManager)
+            {
+                claims.Add(new Claim("IsManager", "true"));
+            }
 
             if (result.EmployeeId is not null)
             {

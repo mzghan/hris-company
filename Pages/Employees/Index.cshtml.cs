@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Employees;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "HR,Support")]
 public class IndexModel : PageModel
 {
     private readonly IEmployeeService _service;

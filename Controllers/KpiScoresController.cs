@@ -21,7 +21,7 @@ public class KpiScoresController : ControllerBase
     // (divalidasi lewat KpiScoreOverrideDto), tercatat sebagai
     // KpiScoreRevision — nilai lama tidak pernah hilang tanpa jejak.
     [HttpPost("{id:int}/override")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize(Policy = "ManagerOrHR")]
     public async Task<ActionResult<EmployeeKpiScoreResponseDto>> Override(int id, KpiScoreOverrideDto dto)
     {
         var managerEmployeeId = User.GetEmployeeId();

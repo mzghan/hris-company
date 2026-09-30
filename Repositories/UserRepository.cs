@@ -14,10 +14,16 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<User?> GetByUsernameAsync(string username) =>
-        await _context.Users.Include(u => u.Employee).FirstOrDefaultAsync(u => u.Username == username);
+        await _context.Users
+            .Include(u => u.Employee)
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Username == username);
 
     public async Task<bool> UsernameExistsAsync(string username) =>
         await _context.Users.AnyAsync(u => u.Username == username);
+
+    public async Task<bool> EmployeeHasAccountAsync(int employeeId) =>
+        await _context.Users.AnyAsync(u => u.EmployeeId == employeeId);
 
     public async Task<User> AddAsync(User user)
     {
@@ -27,4 +33,16 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<bool> AnyUserExistsAsync() => await _context.Users.AnyAsync();
+
+    public async Task UpdateLastLoginAsync(User user)
+    {
+        user.LastLoginAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<Role>> GetRolesByNamesAsync(IEnumerable<string> roleNames)
+    {
+        var names = roleNames.ToList();
+        return await _context.Roles.Where(r => names.Contains(r.RoleName)).ToListAsync();
+    }
 }

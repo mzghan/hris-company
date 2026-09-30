@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Attendance;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Employee,Manager")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "Employee")]
 public class IndexModel : PageModel
 {
     private readonly IAttendanceService _service;

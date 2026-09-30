@@ -1,25 +1,25 @@
+using HRIS.Api.Common;
 using HRIS.Api.DTOs.Attendance;
+using HRIS.Api.DTOs.Auth;
+using HRIS.Api.DTOs.Employee;
 using HRIS.Api.DTOs.Kpi;
 using HRIS.Api.DTOs.Leave;
-using HRIS.Api.DTOs.Payroll;
+using HRIS.Api.DTOs.Organization;
 using HRIS.Api.Models;
-using HRIS.Api.Models.Enums;
 using HRIS.Api.Repositories;
 using HRIS.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace HRIS.Api.Data;
 
-// Seed satu akun Admin awal saat aplikasi pertama kali dijalankan,
-// supaya tidak ada masalah "ayam-telur" (butuh Admin untuk membuat
-// Employee & User, tapi belum ada akun sama sekali untuk login).
-//
-// Sekaligus (kalau belum ada user sama sekali, artinya DB baru) di-seed
-// data dummy satu perusahaan kecil lengkap dengan Department, Employee
-// berjenjang, akun login tiap role, riwayat gaji, absensi, pengajuan
-// cuti multi-level, satu PayrollPeriod, dan satu KpiPeriod terisi —
-// supaya semua fitur (termasuk Payroll & KPI) langsung bisa dicoba
-// tanpa harus input manual satu-satu dulu.
+// Urutan seed saat aplikasi pertama kali dijalankan:
+//   1. Data REF_* (seed wajib dari dokumen desain DB bab 3.5) dan SYS_Role.
+//      Idempotent: tiap tabel hanya diisi kalau masih kosong.
+//   2. Akun Support awal (tanpa Employee), supaya tidak ada masalah "ayam-telur"
+//      (butuh HR/Support untuk membuat Employee & User, tapi belum ada akun sama sekali).
+//   3. Data dummy satu perusahaan kecil (organisasi bertingkat, karyawan, atasan,
+//      akun tiap role, absensi, cuti multi-level, KPI) kalau belum ada Employee,
+//      supaya semua fitur langsung bisa dicoba tanpa input manual.
 public static class DbSeeder
 {
     // Foto placeholder (4x4 px abu-abu) + koordinat kantor dummy di Jakarta,
@@ -31,85 +31,61 @@ public static class DbSeeder
     private const double SeedAttendanceLatitude = -6.2088;
     private const double SeedAttendanceLongitude = 106.8456;
 
-
     public static async Task SeedAsync(IServiceProvider services, IConfiguration config)
     {
+        var db = services.GetRequiredService<AppDbContext>();
         var userRepository = services.GetRequiredService<IUserRepository>();
-        var employeeRepository = services.GetRequiredService<IEmployeeRepository>();
+        var authService = services.GetRequiredService<IAuthService>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // --- 1. Akun Admin awal (seperti sebelumnya) ---
-        // Dicek terpisah dari data dummy perusahaan di bawah, supaya kalau
-        // percobaan seed sebelumnya sempat gagal di tengah jalan (mis. karena
-        // migration yang belum lengkap) dan Admin sudah kadung ke-create,
-        // itu tidak mengunci data dummy company supaya tidak pernah dicoba
-        // ulang lagi. "Sudah ada User" dan "sudah ada data dummy company"
-        // sekarang jadi dua pertanyaan yang terpisah.
-        User admin;
+        // --- 1. Data referensi & role ---
+        await SeedReferenceDataAsync(db);
+
+        // --- 2. Akun Support awal ---
+        // Dicek terpisah dari data dummy di bawah, supaya kalau percobaan seed
+        // sebelumnya gagal di tengah jalan, akun ini tidak mengunci data dummy
+        // supaya tidak pernah dicoba ulang.
+        var supportUsername = config["SeedSupport:Username"] ?? "support";
+        var supportPassword = config["SeedSupport:Password"] ?? "Support123!";
+
         if (!await userRepository.AnyUserExistsAsync())
         {
-            var adminUsername = config["SeedAdmin:Username"] ?? "admin";
-            var adminPassword = config["SeedAdmin:Password"] ?? "Admin123!";
-
-            admin = new User
+            await authService.RegisterAsync(new RegisterDto
             {
-                Username = adminUsername,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-                Role = UserRole.Admin,
+                Username = supportUsername,
+                Password = supportPassword,
+                Roles = new List<string> { RoleNames.Support },
                 EmployeeId = null
-            };
-            await userRepository.AddAsync(admin);
+            }, actorIsSupport: true);
 
             logger.LogWarning(
-                "Akun Admin awal dibuat: username='{Username}', password default dari appsettings. " +
-                "GANTI PASSWORD INI setelah login pertama kali.", adminUsername);
-        }
-        else
-        {
-            // Admin (atau user lain) sudah ada dari percobaan sebelumnya.
-            // Ambil akun admin yang sudah ada supaya tetap bisa dipakai
-            // sebagai FilledByUserId dkk kalau data dummy company di bawah
-            // belum sempat ke-seed.
-            var adminUsername = config["SeedAdmin:Username"] ?? "admin";
-            admin = await userRepository.GetByUsernameAsync(adminUsername)
-                ?? new User { Id = 0, Username = adminUsername, Role = UserRole.Admin };
+                "Akun Support awal dibuat: username='{Username}', password default dari appsettings. " +
+                "GANTI PASSWORD INI setelah login pertama kali.", supportUsername);
         }
 
-        // --- 2. Data dummy perusahaan (Department + Employee berjenjang + akun) ---
-        // Guard-nya sengaja BUKAN "apakah ada User", tapi "apakah sudah ada
-        // Employee" — supaya kalau sebelumnya cuma Admin yang berhasil dibuat
-        // (mis. run pertama gagal saat bikin data KPI karena tabelnya belum
-        // ada), run berikutnya tetap mencoba seed ulang data dummy-nya,
-        // bukan langsung skip selamanya.
-        var existingEmployees = await employeeRepository.GetAllAsync();
-        if (existingEmployees.Count > 0)
-            return;
-
-        if (admin.Id == 0)
+        var support = await userRepository.GetByUsernameAsync(supportUsername);
+        if (support is null)
         {
-            // Tidak ada akun admin sama sekali yang bisa dipakai (kasus yang
-            // seharusnya tidak terjadi lagi, tapi dijaga supaya tidak NRE).
-            logger.LogWarning("Tidak ada akun Admin ditemukan, seed data dummy company dilewati.");
+            logger.LogWarning("Akun Support '{Username}' tidak ditemukan, seed data dummy company dilewati.", supportUsername);
             return;
         }
+
+        // --- 3. Data dummy perusahaan ---
+        // Guard-nya "apakah sudah ada Employee", bukan "apakah ada User" — supaya
+        // kalau sebelumnya hanya akun Support yang berhasil dibuat, run berikutnya
+        // tetap mencoba seed ulang data dummy-nya.
+        if (await db.Employees.AnyAsync())
+            return;
 
         try
         {
-            // Dibungkus satu transaction eksplisit: SeedCompanyDataAsync memanggil
-            // banyak repository yang masing-masing SaveChangesAsync sendiri-sendiri
-            // (per baris), tapi karena semuanya jalan di atas AppDbContext yang
-            // SAMA (satu scope DI), membungkusnya dalam transaction bikin semua
-            // SaveChanges itu ikut satu transaction yang sama juga. Kalau ada
-            // exception di tengah (mis. tabel KPI belum ke-migrate), transaction
-            // di-rollback dan SEMUA baris yang sempat ke-insert (Department,
-            // Employee, dst) ikut hilang lagi — bukan nyangkut di tengah kayak
-            // sebelumnya. Employees.Count di run berikutnya jadi selalu akurat:
-            // 0 kalau belum pernah sukses penuh, atau 6 kalau sudah sukses penuh.
-            var db = services.GetRequiredService<AppDbContext>();
+            // Satu transaction eksplisit: semua Service/Repository di bawah berjalan
+            // di atas AppDbContext yang sama (satu scope DI), jadi kalau ada yang
+            // gagal di tengah, semua baris yang sempat ter-insert ikut di-rollback.
             await using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                await SeedCompanyDataAsync(services, admin, logger);
+                await SeedCompanyDataAsync(services, db, support, logger);
                 await transaction.CommitAsync();
             }
             catch
@@ -120,134 +96,214 @@ public static class DbSeeder
         }
         catch (Exception ex)
         {
-            // Data dummy sengaja tidak menggagalkan startup aplikasi kalau
-            // ada yang meleset (mis. konfigurasi PayrollApproval tidak cocok
-            // dengan Id employee yang ke-generate) — Admin tetap bisa login
-            // dan input data manual seperti biasa. Karena rollback di atas,
-            // kegagalan di sini tidak menyisakan data setengah jadi — akan
-            // dicoba ulang lagi dari nol otomatis saat aplikasi di-restart.
-            logger.LogError(ex, "Gagal seed data dummy perusahaan. Admin tetap bisa login & input data manual. " +
+            // Data dummy sengaja tidak menggagalkan startup aplikasi: akun Support
+            // tetap bisa login dan input data manual. Akan dicoba lagi otomatis
+            // saat aplikasi di-restart.
+            logger.LogError(ex, "Gagal seed data dummy perusahaan. Support tetap bisa login & input data manual. " +
                 "Akan dicoba lagi otomatis saat aplikasi di-restart.");
         }
     }
 
-    private static async Task SeedCompanyDataAsync(IServiceProvider services, User admin, ILogger logger)
+    // ================= REF_* & SYS_Role =================
+
+    private static async Task SeedReferenceDataAsync(AppDbContext db)
+    {
+        if (!await db.Roles.AnyAsync())
+        {
+            db.Roles.AddRange(
+                new Role { RoleName = RoleNames.Employee },
+                new Role { RoleName = RoleNames.HR },
+                new Role { RoleName = RoleNames.Support });
+        }
+
+        if (!await db.HierarchyTypes.AnyAsync())
+            db.HierarchyTypes.AddRange(
+                new HierarchyType { HierarchyTypeName = RefNames.DirectManager },
+                new HierarchyType { HierarchyTypeName = RefNames.DottedManager });
+
+        if (!await db.IdentityTypes.AnyAsync())
+            db.IdentityTypes.AddRange(new[] { "KTP", "Passport", "KITAS", "KITAP", "NPWP", "BPJS Kesehatan", "BPJS Ketenagakerjaan" }
+                .Select(n => new IdentityType { IdentityTypeName = n }));
+
+        if (!await db.ContactTypes.AnyAsync())
+            db.ContactTypes.AddRange(new[] { RefNames.WorkEmail, "Personal Email", "Mobile" }
+                .Select(n => new ContactType { ContactTypeName = n }));
+
+        if (!await db.Relationships.AnyAsync())
+            db.Relationships.AddRange(new[] { "Spouse", "Child", "Parent", "Sibling" }
+                .Select(n => new Relationship { RelationshipName = n }));
+
+        if (!await db.EmploymentStatuses.AnyAsync())
+            db.EmploymentStatuses.AddRange(new[] { "Active", "Probation", "Resigned", "Terminated" }
+                .Select(n => new EmploymentStatus { EmploymentStatusName = n }));
+
+        if (!await db.EmploymentTypes.AnyAsync())
+            db.EmploymentTypes.AddRange(
+                new EmploymentType { EmploymentTypeName = "Permanent", EmploymentTypeDescription = "Karyawan tetap" },
+                new EmploymentType { EmploymentTypeName = "Contract", EmploymentTypeDescription = "Karyawan kontrak" },
+                new EmploymentType { EmploymentTypeName = RefNames.Outsource, EmploymentTypeDescription = "Karyawan dari vendor (wajib vendor)" });
+
+        if (!await db.EndReasons.AnyAsync())
+            db.EndReasons.AddRange(new[] { "Resigned - better position", "Terminated - not perform", "Contract ended" }
+                .Select(n => new EndReason { EndReasonName = n }));
+
+        if (!await db.Genders.AnyAsync())
+            db.Genders.AddRange(new[] { "Male", "Female" }.Select(n => new Gender { GenderName = n }));
+
+        if (!await db.MaritalStatuses.AnyAsync())
+            db.MaritalStatuses.AddRange(new[] { "Single", "Married", "Divorced", "Widowed" }
+                .Select(n => new MaritalStatus { MaritalStatusName = n }));
+
+        if (!await db.Religions.AnyAsync())
+            db.Religions.AddRange(new[] { "Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu" }
+                .Select(n => new Religion { ReligionName = n }));
+
+        if (!await db.AddressTypes.AnyAsync())
+            db.AddressTypes.AddRange(new[] { "KTP", "Domicile" }.Select(n => new AddressType { AddressTypeName = n }));
+
+        if (!await db.AccountTypes.AnyAsync())
+            db.AccountTypes.AddRange(new[] { "Bank Account", "E-Wallet", "Credit Card" }
+                .Select(n => new AccountType { AccountTypeName = n }));
+
+        if (!await db.EducationDegrees.AnyAsync())
+            db.EducationDegrees.AddRange(new[] { "SMA/SMK", "D3", "S1", "S2", "S3" }
+                .Select(n => new EducationDegree { DegreeName = n }));
+
+        if (!await db.Industries.AnyAsync())
+            db.Industries.AddRange(new[] { "Information Technology", "Manufacturing", "Finance", "Retail" }
+                .Select(n => new Industry { IndustryName = n }));
+
+        // Grade angka 1-8 (makin besar makin tinggi).
+        if (!await db.Grades.AnyAsync())
+            db.Grades.AddRange(Enumerable.Range(1, 8)
+                .Select(i => new Grade { GradeLevel = i, GradeDescription = $"Grade {i}" }));
+
+        // Job level: urutan perkiraan dari dokumen desain, bisa dikoreksi kapan saja.
+        if (!await db.JobLevels.AnyAsync())
+        {
+            var levels = new[] { "Staff", "Senior Staff", "Supervisor", "Assistant Manager", "Manager", "Senior Manager", "Head", "Group Head" };
+            db.JobLevels.AddRange(levels.Select((n, i) => new JobLevel { JobLevelName = n, LevelOrder = i + 1 }));
+        }
+
+        // ID = kode ISO. Ekspatriat ditentukan dari nationality_country_id bukan Indonesia.
+        if (!await db.Countries.AnyAsync())
+            db.Countries.AddRange(
+                new Country { CountryName = "Indonesia", CountryCode = "ID" },
+                new Country { CountryName = "Japan", CountryCode = "JP" },
+                new Country { CountryName = "Singapore", CountryCode = "SG" },
+                new Country { CountryName = "Malaysia", CountryCode = "MY" });
+
+        if (!await db.Locations.AnyAsync())
+            db.Locations.AddRange(new[] { "Head Office Jakarta", "Branch Surabaya" }
+                .Select(n => new Location { LocationName = n }));
+
+        if (!await db.JobTitles.AnyAsync())
+            db.JobTitles.AddRange(new[]
+            {
+                "Head of Operations", "Engineering Manager", "Software Engineer",
+                "Finance Manager", "Finance Staff", "HR Staff"
+            }.Select(n => new JobTitle { JobTitleName = n }));
+
+        if (!await db.Vendors.AnyAsync())
+            db.Vendors.Add(new Vendor { VendorName = "PT Vendor Contoh" });
+
+        await db.SaveChangesAsync();
+
+        // Provinsi & kota butuh Id negara, jadi disimpan setelah Country.
+        if (!await db.Provinces.AnyAsync())
+        {
+            var indonesia = await db.Countries.FirstAsync(c => c.CountryCode == "ID");
+            var jakarta = new Province { ProvinceName = "DKI Jakarta", CountryId = indonesia.Id };
+            db.Provinces.Add(jakarta);
+            await db.SaveChangesAsync();
+
+            db.Cities.AddRange(
+                new City { CityName = "Jakarta Selatan", ProvinceId = jakarta.Id },
+                new City { CityName = "Jakarta Pusat", ProvinceId = jakarta.Id });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    // ================= Data dummy perusahaan =================
+
+    private static async Task SeedCompanyDataAsync(IServiceProvider services, AppDbContext db, User support, ILogger logger)
     {
         const string defaultPassword = "Password123!";
 
-        var departmentRepository = services.GetRequiredService<IDepartmentRepository>();
-        var employeeRepository = services.GetRequiredService<IEmployeeRepository>();
-        var userRepository = services.GetRequiredService<IUserRepository>();
-        var salaryService = services.GetRequiredService<IEmployeeSalaryService>();
+        var organizationService = services.GetRequiredService<IOrganizationService>();
+        var employeeService = services.GetRequiredService<IEmployeeService>();
+        var authService = services.GetRequiredService<IAuthService>();
         var attendanceService = services.GetRequiredService<IAttendanceService>();
         var leaveService = services.GetRequiredService<ILeaveRequestService>();
-        var payrollService = services.GetRequiredService<IPayrollService>();
         var kpiService = services.GetRequiredService<IKpiService>();
 
-        // --- Department ---
-        var engineering = await departmentRepository.AddAsync(new Department { Name = "Engineering" });
-        var finance = await departmentRepository.AddAsync(new Department { Name = "Finance" });
+        // --- Organisasi bertingkat ---
+        var company = await organizationService.CreateAsync(new OrganizationCreateDto { OrganizationName = "PT Contoh Nusantara" });
+        var engineering = await organizationService.CreateAsync(new OrganizationCreateDto { OrganizationName = "Engineering", ParentId = company.Id });
+        var finance = await organizationService.CreateAsync(new OrganizationCreateDto { OrganizationName = "Finance", ParentId = company.Id });
+        var humanResources = await organizationService.CreateAsync(new OrganizationCreateDto { OrganizationName = "Human Resources", ParentId = company.Id });
 
-        // --- Employee berjenjang ---
-        // Id yang dihasilkan (DB baru, urutan insert ini) akan jadi 1..6,
-        // sengaja disusun supaya Budi=Id1 & Siti=Id2 cocok dengan konfigurasi
-        // "PayrollApproval:ApproverEmployeeIds": "2,1" di appsettings.json
-        // (level 1 = Manager Engineering, level 2 = Direktur).
-        var budi = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Budi Santoso",
-            Email = "budi.santoso@hris.local",
-            Position = "Direktur Utama",
-            HireDate = new DateTime(2020, 1, 5),
-            DepartmentId = null,
-            ManagerId = null
-        });
+        // --- Lookup Id dari seed REF_* (berdasarkan nama) ---
+        var permanentId = (await db.EmploymentTypes.FirstAsync(t => t.EmploymentTypeName == "Permanent")).Id;
+        var activeId = (await db.EmploymentStatuses.FirstAsync(s => s.EmploymentStatusName == "Active")).Id;
+        var locationId = (await db.Locations.FirstAsync()).Id;
+        var indonesiaId = (await db.Countries.FirstAsync(c => c.CountryCode == "ID")).Id;
+        var levels = await db.JobLevels.ToDictionaryAsync(l => l.JobLevelName, l => l.Id);
+        var titles = await db.JobTitles.ToDictionaryAsync(t => t.JobTitleName, t => t.Id);
+        var grades = await db.Grades.ToDictionaryAsync(g => g.GradeLevel, g => g.Id);
 
-        var siti = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Siti Aminah",
-            Email = "siti.aminah@hris.local",
-            Position = "Engineering Manager",
-            HireDate = new DateTime(2021, 3, 10),
-            DepartmentId = engineering.Id,
-            ManagerId = budi.Id
-        });
+        async Task<EmployeeResponseDto> CreateEmployeeAsync(
+            string number, string name, string email, DateOnly joinDate, int organizationId,
+            string title, string level, int gradeLevel, int? managerId) =>
+            await employeeService.CreateAsync(new EmployeeCreateDto
+            {
+                EmployeeNumber = number,
+                FullName = name,
+                WorkEmail = email,
+                JoinDate = joinDate,
+                NationalityCountryId = indonesiaId,
+                EmploymentTypeId = permanentId,
+                EmploymentStatusId = activeId,
+                OrganizationId = organizationId,
+                LocationId = locationId,
+                JobTitleId = titles[title],
+                JobLevelId = levels[level],
+                GradeId = grades[gradeLevel],
+                DirectManagerId = managerId
+            });
 
-        var andi = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Andi Wijaya",
-            Email = "andi.wijaya@hris.local",
-            Position = "Finance Manager",
-            HireDate = new DateTime(2021, 4, 1),
-            DepartmentId = finance.Id,
-            ManagerId = budi.Id
-        });
+        // --- Karyawan berjenjang (atasan lewat MST_Employee_Hierarchy) ---
+        // Budi (Head) -> Siti (Eng Manager) -> Dewi, Rudi
+        //             -> Andi (Finance Manager) -> Maya
+        //             -> Hana (HR)
+        var budi = await CreateEmployeeAsync("EMP-0001", "Budi Santoso", "budi@contoh.co.id", new DateOnly(2020, 1, 5), company.Id, "Head of Operations", "Head", 7, null);
+        var siti = await CreateEmployeeAsync("EMP-0002", "Siti Rahayu", "siti@contoh.co.id", new DateOnly(2021, 3, 10), engineering.Id, "Engineering Manager", "Manager", 5, budi.Id);
+        var andi = await CreateEmployeeAsync("EMP-0003", "Andi Wijaya", "andi@contoh.co.id", new DateOnly(2021, 4, 1), finance.Id, "Finance Manager", "Manager", 5, budi.Id);
+        var dewi = await CreateEmployeeAsync("EMP-0004", "Dewi Lestari", "dewi@contoh.co.id", new DateOnly(2022, 6, 15), engineering.Id, "Software Engineer", "Staff", 2, siti.Id);
+        var rudi = await CreateEmployeeAsync("EMP-0005", "Rudi Hartono", "rudi@contoh.co.id", new DateOnly(2022, 8, 1), engineering.Id, "Software Engineer", "Staff", 2, siti.Id);
+        var maya = await CreateEmployeeAsync("EMP-0006", "Maya Putri", "maya@contoh.co.id", new DateOnly(2023, 2, 20), finance.Id, "Finance Staff", "Staff", 1, andi.Id);
+        var hana = await CreateEmployeeAsync("EMP-0007", "Hana Kusuma", "hana@contoh.co.id", new DateOnly(2021, 9, 1), humanResources.Id, "HR Staff", "Senior Staff", 3, budi.Id);
 
-        var dewi = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Dewi Lestari",
-            Email = "dewi.lestari@hris.local",
-            Position = "Backend Engineer",
-            HireDate = new DateTime(2022, 6, 15),
-            DepartmentId = engineering.Id,
-            ManagerId = siti.Id
-        });
-
-        var rudi = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Rudi Hartono",
-            Email = "rudi.hartono@hris.local",
-            Position = "Frontend Engineer",
-            HireDate = new DateTime(2022, 8, 1),
-            DepartmentId = engineering.Id,
-            ManagerId = siti.Id
-        });
-
-        var maya = await employeeRepository.AddAsync(new Employee
-        {
-            FullName = "Maya Putri",
-            Email = "maya.putri@hris.local",
-            Position = "Finance Staff",
-            HireDate = new DateTime(2023, 2, 20),
-            DepartmentId = finance.Id,
-            ManagerId = andi.Id
-        });
-
-        // --- Akun login untuk tiap employee (password sama semua untuk demo) ---
-        async Task<User> CreateUserAsync(string username, UserRole role, int employeeId)
-        {
-            var user = new User
+        // --- Akun login. Semua dapat role Employee otomatis; Hana tambahan HR.
+        // Budi/Siti/Andi otomatis dapat claim IsManager karena punya bawahan aktif. ---
+        async Task<AuthResponseDto> CreateUserAsync(string username, int employeeId, params string[] extraRoles) =>
+            await authService.RegisterAsync(new RegisterDto
             {
                 Username = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(defaultPassword),
-                Role = role,
+                Password = defaultPassword,
+                Roles = extraRoles.ToList(),
                 EmployeeId = employeeId
-            };
-            return await userRepository.AddAsync(user);
-        }
+            }, actorIsSupport: true);
 
-        var budiUser = await CreateUserAsync("budi", UserRole.Manager, budi.Id);
-        var sitiUser = await CreateUserAsync("siti", UserRole.Manager, siti.Id);
-        await CreateUserAsync("andi", UserRole.Manager, andi.Id);
-        await CreateUserAsync("dewi", UserRole.Employee, dewi.Id);
-        var rudiUser = await CreateUserAsync("rudi", UserRole.Employee, rudi.Id);
-        await CreateUserAsync("maya", UserRole.Employee, maya.Id);
+        await CreateUserAsync("budi", budi.Id);
+        var sitiUser = await CreateUserAsync("siti", siti.Id);
+        await CreateUserAsync("andi", andi.Id);
+        await CreateUserAsync("dewi", dewi.Id);
+        await CreateUserAsync("rudi", rudi.Id);
+        await CreateUserAsync("maya", maya.Id);
+        await CreateUserAsync("hana", hana.Id, RoleNames.HR);
 
-        logger.LogWarning(
-            "Akun dummy dibuat (password semua: '{Password}'): admin, budi (Manager/Direktur), " +
-            "siti (Manager Engineering), andi (Manager Finance), dewi, rudi, maya (Employee).",
-            defaultPassword);
-
-        // --- Riwayat gaji (dibutuhkan sebelum bikin PayrollPeriod) ---
-        var effectiveDate = new DateOnly(DateTime.Today.Year, 1, 1);
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = budi.Id, BaseSalary = 25_000_000, AllowanceTotal = 5_000_000, EffectiveDate = effectiveDate });
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = siti.Id, BaseSalary = 15_000_000, AllowanceTotal = 3_000_000, EffectiveDate = effectiveDate });
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = andi.Id, BaseSalary = 15_000_000, AllowanceTotal = 3_000_000, EffectiveDate = effectiveDate });
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = dewi.Id, BaseSalary = 8_000_000, AllowanceTotal = 1_000_000, EffectiveDate = effectiveDate });
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = rudi.Id, BaseSalary = 8_000_000, AllowanceTotal = 1_000_000, EffectiveDate = effectiveDate });
-        await salaryService.CreateAsync(new EmployeeSalaryCreateDto { EmployeeId = maya.Id, BaseSalary = 7_500_000, AllowanceTotal = 1_000_000, EffectiveDate = effectiveDate });
-
-        // --- Absensi contoh (beberapa hari terakhir untuk Dewi & Rudi) ---
+        // --- Absensi contoh (Dewi & Rudi) ---
         foreach (var empId in new[] { dewi.Id, rudi.Id })
         {
             await attendanceService.CheckInAsync(empId, new AttendanceCheckInDto
@@ -264,9 +320,9 @@ public static class DbSeeder
             });
         }
 
-        // --- Leave request contoh: satu Pending (baru diajukan Dewi, level 1
-        // pending di Siti), satu lagi sampai selesai Approved (Rudi, disetujui
-        // Siti lalu Budi) supaya kelihatan alur multi-level dari awal sampai akhir ---
+        // --- Leave request contoh: satu Pending (Dewi, level 1 pending di Siti),
+        // satu sampai selesai Approved (Rudi, disetujui Siti lalu Budi). Rantai approver
+        // sekarang dibaca dari Direct Manager di MST_Employee_Hierarchy. ---
         await leaveService.CreateAsync(dewi.Id, new LeaveRequestCreateDto
         {
             StartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
@@ -283,10 +339,7 @@ public static class DbSeeder
         await leaveService.ApproveAsync(rudiLeave.Id, siti.Id, new LeaveApprovalActionDto { Note = "Disetujui, jadwal tim aman." });
         await leaveService.ApproveAsync(rudiLeave.Id, budi.Id, new LeaveApprovalActionDto { Note = "OK." });
 
-        // --- PayrollPeriod bulan berjalan (item + approval level 1 & 2 ter-generate otomatis) ---
-        await payrollService.CreatePeriodAsync(new PayrollPeriodCreateDto { Month = DateTime.Today.Month, Year = DateTime.Today.Year });
-
-        // --- KPI: kriteria + satu periode terisi penuh + satu contoh override Manager ---
+        // --- KPI: kriteria + satu periode terisi + satu contoh override Manager ---
         await kpiService.CreateCriteriaAsync(new KpiCriteriaCreateDto { Name = "Kedisiplinan", Weight = 30 });
         await kpiService.CreateCriteriaAsync(new KpiCriteriaCreateDto { Name = "Produktivitas", Weight = 40 });
         await kpiService.CreateCriteriaAsync(new KpiCriteriaCreateDto { Name = "Kerja Sama Tim", Weight = 30 });
@@ -295,35 +348,32 @@ public static class DbSeeder
         var quarter = (DateTime.Today.Month - 1) / 3 + 1;
         var kpiPeriod = await kpiService.CreatePeriodAsync(new KpiPeriodCreateDto { Name = $"Q{quarter} {DateTime.Today.Year}", Year = DateTime.Today.Year });
 
-        var dewiScores = await kpiService.FillScoresAsync(kpiPeriod.Id, admin.Id, new EmployeeKpiScoreFillDto
+        var dewiScores = await kpiService.FillScoresAsync(kpiPeriod.Id, support.Id, new EmployeeKpiScoreFillDto
         {
             EmployeeId = dewi.Id,
             Scores = criteria.Select(c => new KpiScoreItemDto { CriteriaId = c.Id, Score = 80 }).ToList()
         });
-        await kpiService.FillScoresAsync(kpiPeriod.Id, admin.Id, new EmployeeKpiScoreFillDto
+        await kpiService.FillScoresAsync(kpiPeriod.Id, support.Id, new EmployeeKpiScoreFillDto
         {
             EmployeeId = rudi.Id,
             Scores = criteria.Select(c => new KpiScoreItemDto { CriteriaId = c.Id, Score = 75 }).ToList()
         });
-        await kpiService.FillScoresAsync(kpiPeriod.Id, admin.Id, new EmployeeKpiScoreFillDto
+        await kpiService.FillScoresAsync(kpiPeriod.Id, support.Id, new EmployeeKpiScoreFillDto
         {
             EmployeeId = maya.Id,
             Scores = criteria.Select(c => new KpiScoreItemDto { CriteriaId = c.Id, Score = 85 }).ToList()
         });
 
-        // Contoh Manager (Siti) me-review lalu override satu nilai Dewi,
-        // supaya jejak audit trail (KpiScoreRevision) langsung ada datanya.
+        // Siti me-review lalu override satu nilai Dewi, supaya audit trail
+        // (KpiScoreRevision) langsung ada datanya.
         var produktivitasScore = dewiScores.First(s => s.CriteriaName == "Produktivitas");
-        await kpiService.OverrideScoreAsync(produktivitasScore.Id, siti.Id, sitiUser.Id, new KpiScoreOverrideDto
+        await kpiService.OverrideScoreAsync(produktivitasScore.Id, siti.Id, sitiUser.UserId, new KpiScoreOverrideDto
         {
             NewScore = 90,
             Note = "Menyelesaikan migrasi database lebih cepat dari target, dinaikkan dari nilai awal."
         });
 
         logger.LogInformation(
-            "Data dummy perusahaan berhasil di-seed: 2 department, 6 employee, 1 payroll period, 1 kpi period.");
-
-        // Hindari warning "unused variable" untuk yang cuma dipakai referensi Id.
-        _ = budiUser; _ = rudiUser;
+            "Data dummy perusahaan berhasil di-seed: 4 organisasi, 7 employee, 1 kpi period.");
     }
 }

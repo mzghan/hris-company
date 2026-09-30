@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using HRIS.Api.Models.Enums;
 
 namespace HRIS.Api.DTOs.Auth;
 
@@ -11,9 +10,10 @@ public class RegisterDto
     [Required, MinLength(6)]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
-    public UserRole Role { get; set; }
+    // Role tambahan: "HR" atau "Support". Role "Employee" otomatis ditambahkan
+    // kalau EmployeeId diisi. Role "Support" hanya boleh diberikan oleh akun Support.
+    public List<string> Roles { get; set; } = new();
 
-    // Wajib diisi kalau Role = Employee/Manager, supaya akun terhubung ke data Employee.
+    // Wajib diisi kecuali untuk akun Support murni (mis. akun awal dari seed).
     public int? EmployeeId { get; set; }
 }

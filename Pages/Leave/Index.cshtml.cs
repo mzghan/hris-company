@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HRIS.Api.Pages.Leave;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Employee,Manager")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "Employee")]
 public class IndexModel : PageModel
 {
     private readonly ILeaveRequestService _service;

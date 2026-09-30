@@ -18,7 +18,7 @@ public class KpiCriteriaController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "HR,Support")]
     public async Task<ActionResult<KpiCriteriaResponseDto>> Create(KpiCriteriaCreateDto dto)
     {
         var created = await _service.CreateCriteriaAsync(dto);
@@ -28,21 +28,21 @@ public class KpiCriteriaController : ControllerBase
     // Manager juga boleh lihat (bukan hanya Admin) supaya tahu konteks
     // bobot tiap kriteria saat meninjau nilai bawahannya.
     [HttpGet]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize(Policy = "ManagerOrHR")]
     public async Task<ActionResult<List<KpiCriteriaResponseDto>>> GetAll()
     {
         return Ok(await _service.GetAllCriteriaAsync());
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "HR,Support")]
     public async Task<ActionResult<KpiCriteriaResponseDto>> Update(int id, KpiCriteriaUpdateDto dto)
     {
         return Ok(await _service.UpdateCriteriaAsync(id, dto));
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "HR,Support")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteCriteriaAsync(id);

@@ -15,7 +15,7 @@ public class JwtService : IJwtService
         _config = config;
     }
 
-    public (string token, DateTime expiresAt) GenerateToken(User user)
+    public (string token, DateTime expiresAt) GenerateToken(User user, IEnumerable<string> roles, bool isManager)
     {
         var jwtSection = _config.GetSection("Jwt");
         var key = jwtSection["Key"]!;
@@ -27,9 +27,18 @@ public class JwtService : IJwtService
         {
             new(JwtRegisteredClaimNames.Sub, user.Username),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Name, user.Username)
         };
+
+        // Satu claim Role per role tersimpan (Employee/HR/Support).
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        // Manager/Head/Group Head bukan role: claim ini diturunkan dari rantai
+        // atasan (punya bawahan aktif di MST_Employee_Hierarchy) saat login.
+        if (isManager)
+        {
+            claims.Add(new Claim("IsManager", "true"));
+        }
 
         if (user.EmployeeId is not null)
         {

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HRIS.Api.Pages.Kpi;
 
-[Authorize(AuthenticationSchemes = "Cookies", Roles = "Admin")]
+[Authorize(AuthenticationSchemes = "Cookies", Roles = "HR,Support")]
 public class FillScoresModel : PageModel
 {
     private readonly IKpiService _kpiService;

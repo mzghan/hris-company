@@ -249,7 +249,7 @@ public class KpiService : IKpiService
         var score = await _scoreRepository.GetByIdAsync(scoreId)
             ?? throw new NotFoundException($"EmployeeKpiScore dengan id {scoreId} tidak ditemukan.");
 
-        if (score.Employee?.ManagerId != managerEmployeeId)
+        if (!await _employeeRepository.IsDirectManagerOfAsync(managerEmployeeId, score.EmployeeId))
             throw new ForbiddenException("Anda bukan manager langsung dari employee pemilik nilai KPI ini.");
 
         if (score.KpiPeriod?.Status != KpiPeriodStatus.InReview)

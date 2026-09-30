@@ -6,39 +6,111 @@
 
 <h4 class="mb-3">Tambah Karyawan</h4>
 
-<div class="card p-4" style="max-width: 600px;">
+<div class="card p-4" style="max-width: 800px;">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <form method="post">
-        <div class="mb-3">
-            <label class="form-label">Nama Lengkap</label>
-            <input asp-for="Input.FullName" class="form-control" />
-            <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+        <h6 class="text-muted">Data Pribadi</h6>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Nomor Karyawan (NIK)</label>
+                <input asp-for="Input.EmployeeNumber" class="form-control" />
+                <span asp-validation-for="Input.EmployeeNumber" class="text-danger small"></span>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Nama Lengkap</label>
+                <input asp-for="Input.FullName" class="form-control" />
+                <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Email Kerja</label>
+                <input asp-for="Input.WorkEmail" class="form-control" />
+                <span asp-validation-for="Input.WorkEmail" class="text-danger small"></span>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Lahir</label>
+                <input asp-for="Input.BirthDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Masuk</label>
+                <input asp-for="Input.JoinDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Jenis Kelamin</label>
+                <select asp-for="Input.GenderId" asp-items="Model.GenderOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Agama</label>
+                <select asp-for="Input.ReligionId" asp-items="Model.ReligionOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status Pernikahan</label>
+                <select asp-for="Input.MaritalStatusId" asp-items="Model.MaritalStatusOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Kewarganegaraan</label>
+                <select asp-for="Input.NationalityCountryId" asp-items="Model.CountryOptions" class="form-select"><option value="">--</option></select>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input asp-for="Input.Email" class="form-control" />
-            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+
+        <h6 class="text-muted">Pekerjaan</h6>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Tipe Kerja</label>
+                <select asp-for="Input.EmploymentTypeId" asp-items="Model.EmploymentTypeOptions" class="form-select"><option value="">-- Pilih --</option></select>
+                <span asp-validation-for="Input.EmploymentTypeId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status Kerja</label>
+                <select asp-for="Input.EmploymentStatusId" asp-items="Model.EmploymentStatusOptions" class="form-select"><option value="">-- Pilih --</option></select>
+                <span asp-validation-for="Input.EmploymentStatusId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Vendor (khusus Outsource)</label>
+                <select asp-for="Input.VendorId" asp-items="Model.VendorOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Organisasi</label>
+                <select asp-for="Input.OrganizationId" asp-items="Model.OrganizationOptions" class="form-select"><option value="">-- Pilih --</option></select>
+                <span asp-validation-for="Input.OrganizationId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Lokasi</label>
+                <select asp-for="Input.LocationId" asp-items="Model.LocationOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Jabatan</label>
+                <select asp-for="Input.JobTitleId" asp-items="Model.JobTitleOptions" class="form-select"><option value="">-- Pilih --</option></select>
+                <span asp-validation-for="Input.JobTitleId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Job Level</label>
+                <select asp-for="Input.JobLevelId" asp-items="Model.JobLevelOptions" class="form-select"><option value="">-- Pilih --</option></select>
+                <span asp-validation-for="Input.JobLevelId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Grade</label>
+                <select asp-for="Input.GradeId" asp-items="Model.GradeOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Kontrak Berakhir</label>
+                <input asp-for="Input.ContractEndDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check me-3">
+                    <input asp-for="Input.IsFte" class="form-check-input" />
+                    <label class="form-check-label" asp-for="Input.IsFte">FTE</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="Input.IsSales" class="form-check-input" />
+                    <label class="form-check-label" asp-for="Input.IsSales">Sales</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Atasan Langsung</label>
+                <select asp-for="Input.DirectManagerId" asp-items="Model.ManagerOptions" class="form-select"><option value="">-- Tidak ada atasan --</option></select>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Posisi</label>
-            <input asp-for="Input.Position" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Tanggal Masuk</label>
-            <input asp-for="Input.HireDate" type="date" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Departemen</label>
-            <select asp-for="Input.DepartmentId" asp-items="Model.DepartmentOptions" class="form-select">
-                <option value="">-- Tanpa departemen --</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Manager (Atasan Langsung)</label>
-            <select asp-for="Input.ManagerId" asp-items="Model.ManagerOptions" class="form-select">
-                <option value="">-- Tidak ada atasan --</option>
-            </select>
-        </div>
+
         <button type="submit" class="btn btn-primary">Simpan</button>
         <a asp-page="/Employees/Index" class="btn btn-link">Batal</a>
     </form>

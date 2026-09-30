@@ -13,11 +13,12 @@
     <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
+                <th>NIK</th>
                 <th>Nama</th>
                 <th>Email</th>
-                <th>Posisi</th>
-                <th>Departemen</th>
-                <th>Manager</th>
+                <th>Jabatan</th>
+                <th>Organisasi</th>
+                <th>Atasan</th>
                 <th>Status</th>
                 <th class="text-end">Aksi</th>
             </tr>
@@ -26,11 +27,12 @@
             @foreach (var e in Model.Employees)
             {
                 <tr>
+                    <td>@e.EmployeeNumber</td>
                     <td>@e.FullName</td>
-                    <td>@e.Email</td>
-                    <td>@(e.Position ?? "-")</td>
-                    <td>@(e.DepartmentName ?? "-")</td>
-                    <td>@(e.ManagerName ?? "-")</td>
+                    <td>@(e.WorkEmail ?? "-")</td>
+                    <td>@(e.JobTitleName ?? "-")</td>
+                    <td>@(e.OrganizationName ?? "-")</td>
+                    <td>@(e.DirectManagerName ?? "-")</td>
                     <td>
                         @if (e.IsActive)
                         {
@@ -44,7 +46,6 @@
                     <td class="text-end">
                         <a asp-page="/Employees/Edit" asp-route-id="@e.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                         <a asp-page="/Employees/CreateAccount" asp-route-employeeId="@e.Id" class="btn btn-sm btn-outline-primary">Buat Akun</a>
-                        <a asp-page="/Payroll/Salaries" asp-route-employeeId="@e.Id" class="btn btn-sm btn-outline-dark">Gaji</a>
                         <form method="post" asp-page-handler="Delete" asp-route-id="@e.Id" class="d-inline" onsubmit="return confirm('Hapus karyawan @e.FullName?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
                         </form>
@@ -53,7 +54,7 @@
             }
             @if (!Model.Employees.Any())
             {
-                <tr><td colspan="7" class="text-center text-muted py-3">Belum ada data karyawan.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-3">Belum ada data karyawan.</td></tr>
             }
         </tbody>
     </table>

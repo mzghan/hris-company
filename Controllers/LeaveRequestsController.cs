@@ -36,7 +36,7 @@ public class LeaveRequestsController : ControllerBase
     // Daftar leave request yang sedang menunggu approval dari user yang login
     // (dicocokkan lewat LeaveApproval.ApproverId, hanya relevan untuk Manager/Admin).
     [HttpGet("pending-approval")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize(Policy = "ManagerOrHR")]
     public async Task<ActionResult<List<LeaveRequestResponseDto>>> GetPendingForApproval()
     {
         var employeeId = User.GetEmployeeId();
@@ -44,7 +44,7 @@ public class LeaveRequestsController : ControllerBase
     }
 
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize(Policy = "ManagerOrHR")]
     public async Task<ActionResult<LeaveRequestResponseDto>> Approve(int id, LeaveApprovalActionDto dto)
     {
         var approverId = User.GetEmployeeId();
@@ -52,7 +52,7 @@ public class LeaveRequestsController : ControllerBase
     }
 
     [HttpPost("{id:int}/reject")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize(Policy = "ManagerOrHR")]
     public async Task<ActionResult<LeaveRequestResponseDto>> Reject(int id, LeaveApprovalActionDto dto)
     {
         var approverId = User.GetEmployeeId();

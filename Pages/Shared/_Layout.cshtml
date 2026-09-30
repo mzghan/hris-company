@@ -1,6 +1,11 @@
 @{
-    var role = User.Identity != null && User.Identity.IsAuthenticated ? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value : null;
-    var username = User.Identity != null && User.Identity.IsAuthenticated ? User.Identity.Name : null;
+    var isAuth = User.Identity != null && User.Identity.IsAuthenticated;
+    var username = isAuth ? User.Identity!.Name : null;
+    var roleText = isAuth ? string.Join(", ", User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value)) : null;
+    var isHrOrSupport = isAuth && (User.IsInRole("HR") || User.IsInRole("Support"));
+    var isEmployee = isAuth && User.IsInRole("Employee");
+    // Manager/Head/Group Head bukan role tersimpan, tapi claim dari rantai atasan.
+    var isManager = isAuth && User.HasClaim("IsManager", "true");
 }
 <!DOCTYPE html>
 <html lang="id">
@@ -24,33 +29,24 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item"><a class="nav-link" asp-page="/Index">Dashboard</a></li>
 
-                        @if (role == "Admin")
+                        @if (isHrOrSupport)
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Employees/Index">Karyawan</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Departments/Index">Departemen</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Organizations/Index">Organisasi</a></li>
                         }
 
-                        @if (role == "Employee" || role == "Manager")
+                        @if (isEmployee)
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Attendance/Index">Absensi</a></li>
                             <li class="nav-item"><a class="nav-link" asp-page="/Leave/Index">Cuti Saya</a></li>
                         }
 
-                        @if (role == "Manager" || role == "Admin")
+                        @if (isManager || isHrOrSupport)
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Leave/Approvals">Approval Cuti</a></li>
                         }
 
-                        @if (role == "Admin")
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Payroll/Salaries">Gaji Karyawan</a></li>
-                        }
-                        @if (role == "Manager" || role == "Admin")
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Payroll/Index">Payroll</a></li>
-                        }
-
-                        @if (role == "Admin")
+                        @if (isHrOrSupport)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">KPI</a>
@@ -60,6 +56,13 @@
                                 </ul>
                             </li>
                         }
+                        @if (isManager)
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-page="/Kpi/Review">Review KPI</a></li>
+                        }
+                    </ul>
+                            </li>
+                        }
                         @if (role == "Manager")
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Kpi/Review">Review KPI</a></li>
@@ -67,7 +70,7 @@
                     </ul>
                     <ul class="navbar-nav">
                         <li class="nav-item d-flex align-items-center me-3 text-light small">
-                            <span>@username <span class="badge bg-secondary">@role</span></span>
+                            <span>@username <span class="badge bg-secondary">@roleText</span></span>
                         </li>
                         <li class="nav-item">
                             <form method="post" asp-page="/Account/Logout">

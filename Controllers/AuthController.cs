@@ -16,13 +16,13 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    // Hanya Admin yang boleh membuat akun baru (Employee/Manager/Admin lain).
-    // Admin pertama dibuat otomatis lewat DbSeeder saat aplikasi start.
+    // Hanya HR/Support yang boleh membuat akun baru. Role Support hanya boleh
+    // diberikan oleh Support. Akun Support pertama dibuat otomatis lewat DbSeeder.
     [HttpPost("register")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "HR,Support")]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
     {
-        var result = await _authService.RegisterAsync(dto);
+        var result = await _authService.RegisterAsync(dto, User.IsInRole("Support"));
         return Ok(result);
     }
 

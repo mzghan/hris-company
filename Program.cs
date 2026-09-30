@@ -1,4 +1,5 @@
 using System.Text;
+using HRIS.Api.Common;
 using HRIS.Api.Data;
 using HRIS.Api.Middlewares;
 using HRIS.Api.Repositories;
@@ -12,29 +13,32 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Database (SQLite) ---
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    // UseSnakeCaseNamingConvention: kolom DB snake_case sesuai ERD (EmployeeId -> employee_id).
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .UseSnakeCaseNamingConvention());
+
+// Dipakai AppDbContext untuk mengisi kolom audit created_by/updated_by.
+builder.Services.AddHttpContextAccessor();
 
 // --- Repositories ---
-builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<IReferenceRepository, ReferenceRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
-builder.Services.AddScoped<IEmployeeSalaryRepository, EmployeeSalaryRepository>();
-builder.Services.AddScoped<IPayrollPeriodRepository, PayrollPeriodRepository>();
 builder.Services.AddScoped<IKpiCriteriaRepository, KpiCriteriaRepository>();
 builder.Services.AddScoped<IKpiPeriodRepository, KpiPeriodRepository>();
 builder.Services.AddScoped<IEmployeeKpiScoreRepository, EmployeeKpiScoreRepository>();
 
 // --- Services ---
-builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IReferenceService, ReferenceService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
-builder.Services.AddScoped<IEmployeeSalaryService, EmployeeSalaryService>();
-builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
 
 // --- Controllers (API) + Razor Pages (frontend interaktif) ---
@@ -75,7 +79,17 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.Name = "HRIS.Auth";
 });
 
-builder.Services.AddAuthorization();
+// Manager/Head/Group Head bukan role tersimpan: diturunkan dari claim IsManager
+// (punya bawahan aktif di MST_Employee_Hierarchy). HR dan Support (akses penuh)
+// otomatis lolos policy ini.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(RoleNames.ManagerOrHrPolicy, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.IsInRole(RoleNames.HR)
+            || ctx.User.IsInRole(RoleNames.Support)
+            || ctx.User.HasClaim(RoleNames.IsManagerClaim, "true")));
+});
 
 // --- Swagger, dengan dukungan JWT Bearer supaya bisa login-test dari UI /swagger ---
 builder.Services.AddEndpointsApiExplorer();

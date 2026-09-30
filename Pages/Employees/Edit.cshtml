@@ -4,38 +4,49 @@
     ViewData["Title"] = "Edit Karyawan";
 }
 
-<h4 class="mb-3">Edit Karyawan</h4>
+<h4 class="mb-1">Edit Karyawan</h4>
+<p class="text-muted">@Model.EmployeeNumber &middot; @(Model.WorkEmail ?? "-")</p>
 
-<div class="card p-4" style="max-width: 600px;">
+<div class="card p-4" style="max-width: 700px;">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <p class="text-muted small">Email: @Model.EmployeeEmail (tidak bisa diubah)</p>
     <form method="post">
+        <input type="hidden" asp-for="Id" />
         <div class="mb-3">
             <label class="form-label">Nama Lengkap</label>
             <input asp-for="Input.FullName" class="form-control" />
             <span asp-validation-for="Input.FullName" class="text-danger small"></span>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Posisi</label>
-            <input asp-for="Input.Position" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Departemen</label>
-            <select asp-for="Input.DepartmentId" asp-items="Model.DepartmentOptions" class="form-select">
-                <option value="">-- Tanpa departemen --</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Manager (Atasan Langsung)</label>
-            <select asp-for="Input.ManagerId" asp-items="Model.ManagerOptions" class="form-select">
-                <option value="">-- Tidak ada atasan --</option>
-            </select>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Tanggal Lahir</label>
+                <input asp-for="Input.BirthDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Tanggal Masuk</label>
+                <input asp-for="Input.JoinDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Jenis Kelamin</label>
+                <select asp-for="Input.GenderId" asp-items="Model.GenderOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Agama</label>
+                <select asp-for="Input.ReligionId" asp-items="Model.ReligionOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Status Pernikahan</label>
+                <select asp-for="Input.MaritalStatusId" asp-items="Model.MaritalStatusOptions" class="form-select"><option value="">--</option></select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Kewarganegaraan</label>
+                <select asp-for="Input.NationalityCountryId" asp-items="Model.CountryOptions" class="form-select"><option value="">--</option></select>
+            </div>
         </div>
         <div class="form-check mb-3">
             <input asp-for="Input.IsActive" class="form-check-input" />
-            <label asp-for="Input.IsActive" class="form-check-label">Aktif</label>
+            <label class="form-check-label" asp-for="Input.IsActive">Aktif</label>
         </div>
-        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
         <a asp-page="/Employees/Index" class="btn btn-link">Batal</a>
     </form>
 </div>

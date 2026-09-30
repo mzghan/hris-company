@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using HRIS.Api.Models.Enums;
 
 namespace HRIS.Api.Models;
 
+// SYS_User. Satu akun = satu Employee (unique). Employee boleh null hanya
+// untuk akun Support awal (seed), yang belum tentu punya data karyawan.
 public class User
 {
     public int Id { get; set; }
@@ -13,9 +14,11 @@ public class User
     [Required]
     public string PasswordHash { get; set; } = string.Empty;
 
-    public UserRole Role { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? LastLoginAt { get; set; }
 
-    // Nullable: akun admin awal (seed) tidak wajib terhubung ke data Employee.
     public int? EmployeeId { get; set; }
     public Employee? Employee { get; set; }
+
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
