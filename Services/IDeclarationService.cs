@@ -1,0 +1,2 @@
+using HRIS.Api.Common; using HRIS.Api.DTOs.Declaration;
+namespace HRIS.Api.Services; public interface IDeclarationService { Task<List<DeclarationTemplateResponseDto>> GetTemplatesAsync(bool includeInactive=false); Task<DeclarationTemplateResponseDto> SaveTemplateAsync(int id,DeclarationTemplateCreateDto dto,UserContext actor); Task<List<DeclarationSubmissionResponseDto>> GetSubmissionsAsync(UserContext actor); Task<DeclarationSubmissionResponseDto> SubmitAsync(int templateId,int? documentId,UserContext actor); }

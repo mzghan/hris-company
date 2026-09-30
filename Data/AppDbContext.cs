@@ -45,6 +45,7 @@ public class AppDbContext : DbContext
     public DbSet<Industry> Industries => Set<Industry>();
     public DbSet<ApprovalFlowStep> ApprovalFlowSteps => Set<ApprovalFlowStep>();
     public DbSet<DocumentCategory> DocumentCategories => Set<DocumentCategory>();
+    public DbSet<ModuleEligibility> ModuleEligibilities => Set<ModuleEligibility>();
 
     // --- MST_* ---
     public DbSet<Employee> Employees => Set<Employee>();
@@ -81,6 +82,16 @@ public class AppDbContext : DbContext
     public DbSet<LearningMaterial> LearningMaterials => Set<LearningMaterial>();
     public DbSet<Regulation> Regulations => Set<Regulation>();
     public DbSet<AssistanceRequest> AssistanceRequests => Set<AssistanceRequest>();
+    public DbSet<FamilyChangeRequest> FamilyChangeRequests => Set<FamilyChangeRequest>();
+    public DbSet<LetterType> LetterTypes => Set<LetterType>();
+    public DbSet<LetterRequest> LetterRequests => Set<LetterRequest>();
+    public DbSet<VehicleType> VehicleTypes => Set<VehicleType>();
+    public DbSet<ParkingRegistration> ParkingRegistrations => Set<ParkingRegistration>();
+    public DbSet<DeclarationTemplate> DeclarationTemplates => Set<DeclarationTemplate>();
+    public DbSet<DeclarationSubmission> DeclarationSubmissions => Set<DeclarationSubmission>();
+    public DbSet<LaptopRequest> LaptopRequests => Set<LaptopRequest>();
+    public DbSet<LaptopStatusLog> LaptopStatusLogs => Set<LaptopStatusLog>();
+    public DbSet<ServiceAward> ServiceAwards => Set<ServiceAward>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +129,7 @@ public class AppDbContext : DbContext
         MapTable<Industry>(modelBuilder, "REF_Industry", "industry_id");
         MapTable<ApprovalFlowStep>(modelBuilder, "REF_Approval_Flow_Step", "flow_step_id");
         MapTable<DocumentCategory>(modelBuilder, "REF_Document_Category", "category_id");
+        MapTable<ModuleEligibility>(modelBuilder, "REF_Module_Eligibility", "eligibility_id");
 
         modelBuilder.Entity<JobTitle>().Property(j => j.JobTitleName).HasColumnName("job_title");
 
@@ -157,6 +169,16 @@ public class AppDbContext : DbContext
         MapTable<LearningMaterial>(modelBuilder, "TRX_Learning_Material", "material_id");
         MapTable<Regulation>(modelBuilder, "TRX_Regulation", "regulation_id");
         MapTable<AssistanceRequest>(modelBuilder, "TRX_Assistance_Request", "request_id");
+        MapTable<FamilyChangeRequest>(modelBuilder, "TRX_Family_Change_Request", "change_id");
+        MapTable<LetterType>(modelBuilder, "REF_Letter_Type", "letter_type_id");
+        MapTable<LetterRequest>(modelBuilder, "TRX_Letter_Request", "letter_id");
+        MapTable<VehicleType>(modelBuilder, "REF_Vehicle_Type", "vehicle_type_id");
+        MapTable<ParkingRegistration>(modelBuilder, "TRX_Parking_Registration", "parking_id");
+        MapTable<DeclarationTemplate>(modelBuilder, "TRX_Declaration_Template", "template_id");
+        MapTable<DeclarationSubmission>(modelBuilder, "TRX_Declaration_Submission", "submission_id");
+        MapTable<LaptopRequest>(modelBuilder, "TRX_Laptop_Request", "laptop_id");
+        MapTable<LaptopStatusLog>(modelBuilder, "TRX_Laptop_Status_Log", "log_id");
+        MapTable<ServiceAward>(modelBuilder, "TRX_Service_Award", "award_id");
 
         // --- Enum disimpan sebagai string di SQLite, biar gampang dibaca manual saat debug ---
         modelBuilder.Entity<LeaveRequest>().Property(l => l.Status).HasConversion<string>();
@@ -189,6 +211,35 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<EmployeeKpiScore>()
             .HasIndex(s => new { s.KpiPeriodId, s.EmployeeId, s.CriteriaId })
             .IsUnique();
+
+        modelBuilder.Entity<ModuleEligibility>().HasOne(x=>x.EmploymentType).WithMany().HasForeignKey(x=>x.EmploymentTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ModuleEligibility>().HasIndex(x=>new{x.EmploymentTypeId,x.ModuleCode}).IsUnique();
+
+        modelBuilder.Entity<FamilyChangeRequest>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FamilyChangeRequest>().HasOne(x => x.Family).WithMany().HasForeignKey(x => x.FamilyId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FamilyChangeRequest>().HasOne(x => x.Relationship).WithMany().HasForeignKey(x => x.RelationshipId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FamilyChangeRequest>().HasOne(x => x.Gender).WithMany().HasForeignKey(x => x.GenderId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FamilyChangeRequest>().HasIndex(x => new { x.EmployeeId, x.Status });
+
+        modelBuilder.Entity<LetterType>().HasOne(x => x.TemplateDocument).WithMany().HasForeignKey(x => x.TemplateDocumentId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LetterRequest>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LetterRequest>().HasOne(x => x.LetterType).WithMany().HasForeignKey(x => x.LetterTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LetterRequest>().HasOne(x => x.IssuedDocument).WithMany().HasForeignKey(x => x.IssuedDocumentId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ParkingRegistration>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ParkingRegistration>().HasOne(x => x.VehicleType).WithMany().HasForeignKey(x => x.VehicleTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ParkingRegistration>().HasIndex(x => x.PlateNumber).IsUnique();
+
+        modelBuilder.Entity<DeclarationSubmission>().HasOne(x => x.Template).WithMany().HasForeignKey(x => x.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DeclarationSubmission>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DeclarationSubmission>().HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<LaptopRequest>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LaptopStatusLog>().HasOne(x => x.Laptop).WithMany(x => x.StatusLogs).HasForeignKey(x => x.LaptopId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LaptopStatusLog>().HasOne(x => x.ChangedByUser).WithMany().HasForeignKey(x => x.ChangedBy).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ServiceAward>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ServiceAward>().HasIndex(x => new { x.EmployeeId, x.ServiceYears }).IsUnique();
 
         // Baris Employment terkini (end_date NULL) hanya boleh satu per karyawan.
         // Partial index didukung SQLite.

@@ -20,6 +20,10 @@ public class EmployeeRepository : IEmployeeRepository
         _context.Employees
             .Include(e => e.NationalityCountry)
             .Include(e => e.Gender)
+            .Include(e => e.Families).ThenInclude(f => f.Relationship)
+            .Include(e => e.Families).ThenInclude(f => f.Gender)
+            .Include(e => e.Families).ThenInclude(f => f.Relationship)
+            .Include(e => e.Families).ThenInclude(f => f.Gender)
             .Include(e => e.Contacts).ThenInclude(c => c.ContactType)
             .Include(e => e.Employments).ThenInclude(m => m.EmploymentType)
             .Include(e => e.Employments).ThenInclude(m => m.EmploymentStatus)

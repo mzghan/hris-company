@@ -25,6 +25,9 @@ public class ReferenceRepository : IReferenceRepository
             .Select(t => (int?)t.Id)
             .FirstOrDefaultAsync();
 
+    public async Task<bool> IsModuleAllowedAsync(int employmentTypeId, string moduleCode) =>
+        await _context.ModuleEligibilities.Where(x=>x.EmploymentTypeId==employmentTypeId && x.ModuleCode==moduleCode).Select(x=>(bool?)x.IsAllowed).FirstOrDefaultAsync() ?? true;
+
     public async Task<int?> GetContactTypeIdAsync(string name) =>
         await _context.ContactTypes
             .Where(t => t.ContactTypeName == name)
@@ -58,6 +61,8 @@ public class ReferenceRepository : IReferenceRepository
             "educationtitle" => await _context.EducationTitles.OrderBy(x => x.TitleName).Select(x => new ReferenceOption(x.Id, x.TitleName)).ToListAsync(),
             "university" => await _context.Universities.OrderBy(x => x.UniversityName).Select(x => new ReferenceOption(x.Id, x.UniversityName)).ToListAsync(),
             "industry" => await _context.Industries.OrderBy(x => x.IndustryName).Select(x => new ReferenceOption(x.Id, x.IndustryName)).ToListAsync(),
+            "lettertype" => await _context.LetterTypes.Where(x=>x.IsActive).OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
+            "vehicletype" => await _context.VehicleTypes.OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
             "grade" => (await _context.Grades.OrderBy(x => x.GradeLevel).ToListAsync())
                 .Select(x => new ReferenceOption(x.Id, $"Grade {x.GradeLevel}")).ToList(),
             _ => null

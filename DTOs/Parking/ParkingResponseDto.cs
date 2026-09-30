@@ -1,0 +1,2 @@
+namespace HRIS.Api.DTOs.Parking;
+public class ParkingResponseDto { public int Id { get; set; } public int EmployeeId { get; set; } public string EmployeeName { get; set; } = string.Empty; public int VehicleTypeId { get; set; } public string VehicleTypeName { get; set; } = string.Empty; public string PlateNumber { get; set; } = string.Empty; public string Status { get; set; } = string.Empty; public DateTime? CardReadyAt { get; set; } public DateTime? CardCollectedAt { get; set; } public DateTime CreatedAt { get; set; } public int? ApprovalId { get; set; } }

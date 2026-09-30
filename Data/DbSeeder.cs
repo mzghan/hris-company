@@ -134,6 +134,12 @@ public static class DbSeeder
             db.Relationships.AddRange(new[] { "Spouse", "Child", "Parent", "Sibling" }
                 .Select(n => new Relationship { RelationshipName = n }));
 
+        if (!await db.VehicleTypes.AnyAsync())
+            db.VehicleTypes.AddRange(new[] { "Car", "Motorcycle", "Other" }.Select(n => new VehicleType { Name = n }));
+
+        if (!await db.LetterTypes.AnyAsync())
+            db.LetterTypes.AddRange(new[] { "Surat Keterangan Kerja", "Surat Keterangan Penghasilan", "Surat Pengantar Visa" }.Select(n => new LetterType { Name = n }));
+
         if (!await db.EmploymentStatuses.AnyAsync())
             db.EmploymentStatuses.AddRange(new[] { "Active", "Probation", "Resigned", "Terminated" }
                 .Select(n => new EmploymentStatus { EmploymentStatusName = n }));
@@ -210,6 +216,23 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
 
+        if (!await db.ModuleEligibilities.AnyAsync())
+        {
+            var moduleCodes = Enumerable.Range(1, 20).Select(i => i.ToString()).ToArray();
+            var types = new[] { "Permanent", "Contract", RefNames.Outsource };
+            foreach (var typeName in types)
+            {
+                var type = await db.EmploymentTypes.FirstAsync(x => x.EmploymentTypeName == typeName);
+                foreach (var moduleCode in moduleCodes)
+                {
+                    var denied = (typeName == "Contract" || typeName == RefNames.Outsource) && new[] { "3", "5", "6", "10" }.Contains(moduleCode);
+                    db.ModuleEligibilities.Add(new ModuleEligibility { EmploymentTypeId = type.Id, ModuleCode = moduleCode, IsAllowed = !denied });
+                }
+            }
+        }
+
+        await db.SaveChangesAsync();
+
         // Provinsi & kota butuh Id negara, jadi disimpan setelah Country.
         if (!await db.Provinces.AnyAsync())
         {
@@ -227,6 +250,7 @@ public static class DbSeeder
         await SeedDocumentCategoriesAsync(db);
         await SeedApprovalFlowAsync(db);
         await SeedBatchBContentAsync(db);
+        await SeedBatchCContentAsync(db);
     }
 
     // Kategori awal dokumen (modul 1 Learning, 15 HR Forms, 16 Regulation, dokumen pribadi).
@@ -309,6 +333,20 @@ public static class DbSeeder
                 SortOrder = 2
             });
         await db.SaveChangesAsync();
+    }
+
+
+    private static async Task SeedBatchCContentAsync(AppDbContext db)
+    {
+        if (!await db.DeclarationTemplates.AnyAsync())
+        {
+            db.DeclarationTemplates.Add(new DeclarationTemplate
+            {
+                Title = "Pernyataan Kepatuhan Perusahaan",
+                Content = "Contoh template development. Ganti dengan naskah deklarasi perusahaan yang sebenarnya."
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     // ================= Data dummy perusahaan =================

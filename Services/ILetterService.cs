@@ -1,0 +1,2 @@
+using HRIS.Api.Common; using HRIS.Api.DTOs.Letter;
+namespace HRIS.Api.Services; public interface ILetterService { Task<List<LetterTypeResponseDto>> GetTypesAsync(bool includeInactive=false); Task<LetterTypeResponseDto> SaveTypeAsync(int id,LetterTypeCreateDto dto,UserContext actor); Task<List<LetterRequestResponseDto>> GetRequestsAsync(UserContext actor); Task<LetterRequestResponseDto> CreateAsync(LetterRequestCreateDto dto,UserContext actor); Task IssueAsync(int id,int documentId,UserContext actor); }

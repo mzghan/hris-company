@@ -86,3 +86,22 @@ dotnet run
 ```
 
 Jika database masih mengikuti Batch A, migration `BatchB_Content` membuat `TRX_Learning_Material`, `TRX_Regulation`, dan `TRX_Assistance_Request`. Seeder menambahkan contoh regulasi development.
+
+
+## Batch C: Approval sederhana (modul 3, 5, 7, 8, 9, 10)
+
+- **Eligibility** — `REF_Module_Eligibility` mengikuti aturan DB Design: Permanent semua modul; Contract/Outsource menolak modul 3, 5, 6, 10. Service Family, Service Award, dan Laptop memeriksa eligibility sebelum menerima/menampilkan fitur.
+- **Benefit / Family Change (3)** — `TRX_Family_Change_Request` menyimpan snapshot perubahan. Approval HR menerapkan Add/Update/Delete ke `MST_Employee_Family` hanya setelah Approved.
+- **HR Letter (7)** — `REF_Letter_Type` + `TRX_Letter_Request`; approval HR, lalu HR/Support dapat mengaitkan dokumen hasil sebagai `issued_document_id`.
+- **Parking (8)** — `REF_Vehicle_Type` + `TRX_Parking_Registration`; approval HR lalu status `CardReady` → `Collected`. Nomor polisi unik selama registrasi tidak Rejected/Cancelled.
+- **Declaration Letter (9)** — `TRX_Declaration_Template` + `TRX_Declaration_Submission`; employee mencatat persetujuan terhadap template aktif. Tidak dibuat approval karena desain DB tidak menetapkan approval untuk modul ini.
+- **Laptop Ownership (10)** — `TRX_Laptop_Request` + `TRX_Laptop_Status_Log`; approval HR, lalu status operasional `ForwardedToIT` → `Purchased` → `ResetDone`.
+- **Amenities / Service Award (5)** — `TRX_Service_Award`; milestone dibuat untuk kelipatan 5 tahun dari `MST_Employee.join_date`, dengan status `Pending` → `Reminded` → `Given`.
+
+### Migration Batch C
+
+```powershell
+Remove-Item hris.db* -Force -ErrorAction SilentlyContinue
+dotnet ef database update
+dotnet run
+```

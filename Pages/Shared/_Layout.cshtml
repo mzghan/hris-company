@@ -48,6 +48,11 @@
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Attendance/Index">Absensi</a></li>
                             <li class="nav-item"><a class="nav-link" asp-page="/Leave/Index">Cuti Saya</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Family/Index">Keluarga</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Letters/Index">HR Letter</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Parking/Index">Parking</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Declarations/Index">Declaration</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Laptops/Index">Laptop</a></li>
                         }
 
                         <li class="nav-item"><a class="nav-link" asp-page="/Approvals/Index">Approval</a></li>
@@ -72,6 +77,12 @@
                         @if (isManager)
                         {
                             <li class="nav-item"><a class="nav-link" asp-page="/Kpi/Review">Review KPI</a></li>
+                        }
+                        @if (isAuth)
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-page="/ServiceAwards/Index">Service Award</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Declarations/Index">Declaration</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Laptops/Index">Laptop</a></li>
                         }
                     </ul>
                     <ul class="navbar-nav">
