@@ -20,12 +20,18 @@ public class IndexModel : PageModel
     }
 
     public List<LeaveRequestResponseDto> MyRequests { get; set; } = new();
+    public List<HRIS.Api.Models.LeaveType> LeaveTypes { get; set; } = new();
+    public List<HRIS.Api.Models.LeaveBalance> Balances { get; set; } = new();
+    public int SelectedYear { get; set; }
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
     public class InputModel
     {
+        [Required(ErrorMessage = "Jenis cuti wajib dipilih.")]
+        public int LeaveTypeId { get; set; }
+
         [Required(ErrorMessage = "Tanggal mulai wajib diisi.")]
         [DataType(DataType.Date)]
         public DateTime StartDate { get; set; } = DateTime.Today;
@@ -40,6 +46,9 @@ public class IndexModel : PageModel
     public async Task OnGetAsync()
     {
         var employeeId = User.GetEmployeeId();
+        SelectedYear = DateTime.Today.Year;
+        LeaveTypes = await _service.GetLeaveTypesAsync();
+        Balances = await _service.GetBalancesAsync(employeeId, SelectedYear);
         MyRequests = (await _service.GetMyRequestsAsync(employeeId))
             .OrderByDescending(r => r.CreatedAt)
             .ToList();
@@ -51,6 +60,9 @@ public class IndexModel : PageModel
 
         if (!ModelState.IsValid)
         {
+            LeaveTypes = await _service.GetLeaveTypesAsync();
+            SelectedYear = DateTime.Today.Year;
+            Balances = await _service.GetBalancesAsync(employeeId, SelectedYear);
             MyRequests = await _service.GetMyRequestsAsync(employeeId);
             return Page();
         }
@@ -59,6 +71,7 @@ public class IndexModel : PageModel
         {
             await _service.CreateAsync(employeeId, new LeaveRequestCreateDto
             {
+                LeaveTypeId = Input.LeaveTypeId,
                 StartDate = DateOnly.FromDateTime(Input.StartDate),
                 EndDate = DateOnly.FromDateTime(Input.EndDate),
                 Reason = Input.Reason
@@ -70,6 +83,9 @@ public class IndexModel : PageModel
         catch (Exception ex) when (ex is BadRequestException or ForbiddenException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            LeaveTypes = await _service.GetLeaveTypesAsync();
+            SelectedYear = DateTime.Today.Year;
+            Balances = await _service.GetBalancesAsync(employeeId, SelectedYear);
             MyRequests = await _service.GetMyRequestsAsync(employeeId);
             return Page();
         }

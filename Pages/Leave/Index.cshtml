@@ -13,6 +13,16 @@
             <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
             <form method="post">
                 <div class="mb-2">
+                    <label class="form-label small">Jenis Cuti</label>
+                    <select asp-for="Input.LeaveTypeId" class="form-select form-select-sm">
+                        <option value="">Pilih jenis cuti</option>
+                        @foreach (var type in Model.LeaveTypes)
+                        {
+                            <option value="@type.Id">@type.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-2">
                     <label class="form-label small">Tanggal Mulai</label>
                     <input asp-for="Input.StartDate" type="date" class="form-control form-control-sm" />
                 </div>
@@ -74,5 +84,37 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<div class="card p-3 mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <h6 class="mb-0">Saldo Cuti @Model.SelectedYear</h6>
+            <div class="small text-muted">Hari kerja, setelah memperhitungkan penggunaan dan penjualan cuti.</div>
+        </div>
+        <a asp-page="/FlexibleBenefits/Index" class="btn btn-sm btn-outline-primary">Flexible Benefit</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Jenis</th><th>Entitlement</th><th>Terpakai</th><th>Dijual</th><th>Carry Over</th><th>Tersedia</th></tr></thead>
+            <tbody>
+            @foreach (var b in Model.Balances)
+            {
+                <tr>
+                    <td>@b.LeaveType?.Name</td>
+                    <td>@b.Entitlement</td>
+                    <td>@b.Used</td>
+                    <td>@b.Sold</td>
+                    <td>@b.CarriedOver</td>
+                    <td class="fw-semibold">@(b.Entitlement + b.CarriedOver - b.Used - b.Sold)</td>
+                </tr>
+            }
+            @if (!Model.Balances.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-3">Belum ada saldo cuti.</td></tr>
+            }
+            </tbody>
+        </table>
     </div>
 </div>

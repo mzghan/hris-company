@@ -32,6 +32,9 @@ public static class ApprovalRequestTypes
     public static string RequesterLink(string type) => type switch
     {
         Leave => "/Leave/Index",
+        LeaveEncashment => "/FlexibleBenefits/Index",
+        HealthClaim => "/FlexibleBenefits/Index",
+        Manpower => "/Manpower/Index",
         _ => "/Approvals/Index"
     };
 }

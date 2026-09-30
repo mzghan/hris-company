@@ -16,7 +16,7 @@ public class LeaveRequestRepository : ILeaveRequestRepository
 
     // Approver & langkahnya tidak lagi di-include di sini: ada di approval engine (IApprovalService).
     private IQueryable<LeaveRequest> BaseQuery() =>
-        _context.LeaveRequests.Include(l => l.Employee);
+        _context.LeaveRequests.Include(l => l.Employee).Include(l => l.LeaveType);
 
     public async Task<List<LeaveRequest>> GetByEmployeeAsync(int employeeId) =>
         await BaseQuery()

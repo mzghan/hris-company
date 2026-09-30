@@ -1,0 +1,43 @@
+@page
+@model HRIS.Api.Pages.Manpower.IndexModel
+@{
+    ViewData["Title"] = "Manpower Request";
+}
+
+<div class="page-heading">
+    <div><div class="text-muted small">Modul 18</div><h4 class="mb-1">Manpower Request</h4><p class="text-muted mb-0">Pengajuan kebutuhan tenaga kerja mengikuti rantai Manager → Head → HR.</p></div>
+</div>
+
+@if(Model.CanSubmit)
+{
+<div class="card p-3 mb-3">
+    <h6>Pengajuan Baru</h6>
+    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+    <form method="post" class="row g-2">
+        <div class="col-md-3"><label class="form-label small">Organisasi</label><select asp-for="Input.OrganizationId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.Organizations){<option value="@x.Id">@x.Name</option>}</select></div>
+        <div class="col-md-3"><label class="form-label small">Jabatan</label><select asp-for="Input.JobTitleId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.JobTitles){<option value="@x.Id">@x.Name</option>}</select></div>
+        <div class="col-md-2"><label class="form-label small">Job Level</label><select asp-for="Input.JobLevelId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.JobLevels){<option value="@x.Id">@x.Name</option>}</select></div>
+        <div class="col-md-2"><label class="form-label small">Tipe</label><select asp-for="Input.EmploymentTypeId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.EmploymentTypes){<option value="@x.Id">@x.Name</option>}</select></div>
+        <div class="col-md-2"><label class="form-label small">Headcount</label><input asp-for="Input.Headcount" type="number" min="1" class="form-control form-control-sm" /></div>
+        <div class="col-md-3"><label class="form-label small">Target Date</label><input asp-for="Input.TargetDate" type="date" class="form-control form-control-sm" /></div>
+        <div class="col-md-9"><label class="form-label small">Alasan</label><input asp-for="Input.Reason" class="form-control form-control-sm" /></div>
+        <div class="col-12"><button class="btn btn-primary btn-sm">Ajukan Manpower</button></div>
+    </form>
+</div>
+}
+
+<div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Daftar Pengajuan</h6><span class="small text-muted">@Model.Requests.Count data</span></div>
+    <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+            <thead><tr><th>Pengaju</th><th>Organisasi</th><th>Jabatan</th><th>Level</th><th>Headcount</th><th>Target</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            @foreach(var x in Model.Requests)
+            {
+                <tr><td>@x.RequestedByName</td><td>@x.OrganizationName</td><td>@x.JobTitleName</td><td>@x.JobLevelName</td><td>@x.Headcount</td><td>@x.TargetDate.ToString("dd MMM yyyy")</td><td><span class="status-@x.Status">@x.Status</span></td><td>@if(x.ApprovalId is not null){<a asp-page="/Approvals/Index" class="small">Approval</a>}</td></tr>
+            }
+            @if(!Model.Requests.Any()){<tr><td colspan="8" class="text-center text-muted py-3">Belum ada manpower request.</td></tr>}
+            </tbody>
+        </table>
+    </div>
+</div>

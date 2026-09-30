@@ -251,6 +251,7 @@ public static class DbSeeder
         await SeedApprovalFlowAsync(db);
         await SeedBatchBContentAsync(db);
         await SeedBatchCContentAsync(db);
+        await SeedBatchDContentAsync(db);
     }
 
     // Kategori awal dokumen (modul 1 Learning, 15 HR Forms, 16 Regulation, dokumen pribadi).
@@ -349,6 +350,47 @@ public static class DbSeeder
         }
     }
 
+
+    private static async Task SeedBatchDContentAsync(AppDbContext db)
+    {
+        if (!await db.WorkTypes.AnyAsync())
+            db.WorkTypes.AddRange(
+                new WorkType { Name = "WFO" },
+                new WorkType { Name = "WFH" },
+                new WorkType { Name = "WFH with Note" });
+
+        if (!await db.LeaveTypes.AnyAsync())
+            db.LeaveTypes.AddRange(
+                new LeaveType { Name = "Annual", IsSellable = true },
+                new LeaveType { Name = "Sick", IsSellable = false },
+                new LeaveType { Name = "Other", IsSellable = false });
+
+        if (!await db.FlexPeriods.AnyAsync())
+        {
+            var year = JakartaTime.Today().Year;
+            db.FlexPeriods.Add(new FlexPeriod
+            {
+                Name = $"Flexible Benefit {year}",
+                StartDate = new DateOnly(year, 1, 1),
+                EndDate = new DateOnly(year, 12, 31),
+                IsOpen = true
+            });
+        }
+
+        if (!await db.MeetingRooms.AnyAsync())
+        {
+            var location = await db.Locations.FirstOrDefaultAsync();
+            if (location is not null)
+            {
+                db.MeetingRooms.AddRange(
+                    new MeetingRoom { Name = "Meeting Room A", Capacity = 8, LocationId = location.Id, IsActive = true },
+                    new MeetingRoom { Name = "Meeting Room B", Capacity = 12, LocationId = location.Id, IsActive = true });
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     // ================= Data dummy perusahaan =================
 
     private static async Task SeedCompanyDataAsync(IServiceProvider services, AppDbContext db, User support, ILogger logger)
@@ -429,6 +471,17 @@ public static class DbSeeder
         await CreateUserAsync("maya", maya.Id);
         await CreateUserAsync("hana", hana.Id, RoleNames.HR);
 
+        var annualLeaveTypeId = (await db.LeaveTypes.FirstAsync(x => x.Name == "Annual")).Id;
+
+        // --- Saldo cuti development: Annual 12 hari per tahun. Nilai ini dapat diubah HR. ---
+        var currentYear = JakartaTime.Today().Year;
+        foreach (var employeeId in new[] { budi.Id, siti.Id, andi.Id, dewi.Id, rudi.Id, maya.Id, hana.Id })
+        {
+            if (!await db.LeaveBalances.AnyAsync(x => x.EmployeeId == employeeId && x.LeaveTypeId == annualLeaveTypeId && x.Year == currentYear))
+                db.LeaveBalances.Add(new LeaveBalance { EmployeeId = employeeId, LeaveTypeId = annualLeaveTypeId, Year = currentYear, Entitlement = 12 });
+        }
+        await db.SaveChangesAsync();
+
         // --- Absensi contoh (Dewi & Rudi) ---
         foreach (var empId in new[] { dewi.Id, rudi.Id })
         {
@@ -454,6 +507,7 @@ public static class DbSeeder
         var nextMonday = MondayOnOrBefore(today.AddDays(14));
         await leaveService.CreateAsync(dewi.Id, new LeaveRequestCreateDto
         {
+            LeaveTypeId = annualLeaveTypeId,
             StartDate = nextMonday,
             EndDate = nextMonday.AddDays(2),
             Reason = "Acara keluarga"
@@ -462,6 +516,7 @@ public static class DbSeeder
         var pastMonday = MondayOnOrBefore(today.AddDays(-28));
         var rudiLeave = await leaveService.CreateAsync(rudi.Id, new LeaveRequestCreateDto
         {
+            LeaveTypeId = annualLeaveTypeId,
             StartDate = pastMonday,
             EndDate = pastMonday.AddDays(11),
             Reason = "Cuti tahunan"

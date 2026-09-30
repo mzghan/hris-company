@@ -25,6 +25,10 @@ public class ReferenceRepository : IReferenceRepository
             .Select(t => (int?)t.Id)
             .FirstOrDefaultAsync();
 
+    public Task<WorkType?> GetWorkTypeAsync(int id) => _context.WorkTypes.FirstOrDefaultAsync(x => x.Id == id);
+
+    public Task<int?> GetWorkTypeIdAsync(string name) => _context.WorkTypes.Where(x => x.Name == name).Select(x => (int?)x.Id).FirstOrDefaultAsync();
+
     public async Task<bool> IsModuleAllowedAsync(int employmentTypeId, string moduleCode) =>
         await _context.ModuleEligibilities.Where(x=>x.EmploymentTypeId==employmentTypeId && x.ModuleCode==moduleCode).Select(x=>(bool?)x.IsAllowed).FirstOrDefaultAsync() ?? true;
 
@@ -54,6 +58,7 @@ public class ReferenceRepository : IReferenceRepository
             "employmenttype" => await _context.EmploymentTypes.OrderBy(x => x.Id).Select(x => new ReferenceOption(x.Id, x.EmploymentTypeName)).ToListAsync(),
             "employmentstatus" => await _context.EmploymentStatuses.OrderBy(x => x.Id).Select(x => new ReferenceOption(x.Id, x.EmploymentStatusName)).ToListAsync(),
             "endreason" => await _context.EndReasons.OrderBy(x => x.Id).Select(x => new ReferenceOption(x.Id, x.EndReasonName)).ToListAsync(),
+            "organization" => await _context.Organizations.OrderBy(x => x.OrganizationName).Select(x => new ReferenceOption(x.Id, x.OrganizationName)).ToListAsync(),
             "location" => await _context.Locations.OrderBy(x => x.LocationName).Select(x => new ReferenceOption(x.Id, x.LocationName)).ToListAsync(),
             "jobtitle" => await _context.JobTitles.OrderBy(x => x.JobTitleName).Select(x => new ReferenceOption(x.Id, x.JobTitleName)).ToListAsync(),
             "joblevel" => await _context.JobLevels.OrderBy(x => x.LevelOrder).Select(x => new ReferenceOption(x.Id, x.JobLevelName)).ToListAsync(),
@@ -63,6 +68,8 @@ public class ReferenceRepository : IReferenceRepository
             "industry" => await _context.Industries.OrderBy(x => x.IndustryName).Select(x => new ReferenceOption(x.Id, x.IndustryName)).ToListAsync(),
             "lettertype" => await _context.LetterTypes.Where(x=>x.IsActive).OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
             "vehicletype" => await _context.VehicleTypes.OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
+            "worktype" => await _context.WorkTypes.OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
+            "leavetype" => await _context.LeaveTypes.OrderBy(x => x.Name).Select(x => new ReferenceOption(x.Id, x.Name)).ToListAsync(),
             "grade" => (await _context.Grades.OrderBy(x => x.GradeLevel).ToListAsync())
                 .Select(x => new ReferenceOption(x.Id, $"Grade {x.GradeLevel}")).ToList(),
             _ => null

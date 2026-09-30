@@ -1,0 +1,127 @@
+@page
+@model HRIS.Api.Pages.FlexibleBenefits.IndexModel
+@{
+    ViewData["Title"] = "Flexible Benefit";
+}
+
+<div class="page-heading">
+    <div>
+        <div class="text-muted small">Modul 6</div>
+        <h4 class="mb-1">Flexible Benefit</h4>
+        <p class="text-muted mb-0">Saldo cuti, penjualan sisa cuti, dan klaim kesehatan.</p>
+    </div>
+</div>
+
+@if (Model.CanSubmit)
+{
+    <div class="row g-3">
+        <div class="col-xl-5">
+            <div class="card p-3 h-100">
+                <h6>Saldo Cuti @DateTime.Today.Year</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Jenis</th><th>Hak</th><th>Terpakai</th><th>Dijual</th><th>Tersedia</th></tr></thead>
+                        <tbody>
+                        @foreach (var b in Model.Balances)
+                        {
+                            <tr><td>@b.LeaveTypeName</td><td>@b.Entitlement</td><td>@b.Used</td><td>@b.Sold</td><td class="fw-semibold">@b.Available</td></tr>
+                        }
+                        @if (!Model.Balances.Any())
+                        {
+                            <tr><td colspan="5" class="text-muted text-center py-3">Belum ada saldo.</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card p-3 h-100">
+                <h6>Pengajuan Flexible Benefit</h6>
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <form method="post" asp-page-handler="Encash">
+                            <label class="form-label small">Penjualan sisa cuti</label>
+                            <select asp-for="Encashment.PeriodId" class="form-select form-select-sm mb-2">
+                                <option value="">Pilih periode</option>
+                                @foreach (var p in Model.Periods.Where(x => x.IsOpen))
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </select>
+                            <select asp-for="Encashment.LeaveTypeId" class="form-select form-select-sm mb-2">
+                                <option value="">Pilih jenis cuti</option>
+                                @foreach (var type in Model.LeaveTypes.Where(x => x.IsSellable))
+                                {
+                                    <option value="@type.Id">@type.Name</option>
+                                }
+                            </select>
+                            <input asp-for="Encashment.Days" class="form-control form-control-sm mb-2" type="number" min="1" placeholder="Jumlah hari" />
+                            <button class="btn btn-primary btn-sm w-100">Ajukan Penjualan Cuti</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6 border-start-md">
+                        <form method="post" asp-page-handler="Claim">
+                            <label class="form-label small">Klaim kesehatan</label>
+                            <select asp-for="Claim.PeriodId" class="form-select form-select-sm mb-2">
+                                <option value="">Pilih periode</option>
+                                @foreach (var p in Model.Periods.Where(x => x.IsOpen))
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </select>
+                            <input asp-for="Claim.Amount" class="form-control form-control-sm mb-2" type="number" min="1" placeholder="Nominal rupiah" />
+                            <textarea asp-for="Claim.Description" class="form-control form-control-sm mb-2" rows="2" placeholder="Keterangan"></textarea>
+                            <button class="btn btn-primary btn-sm w-100">Ajukan Klaim</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-3 mt-1">
+    <div class="col-xl-6">
+        <div class="card p-3">
+            <h6>Riwayat Penjualan Cuti</h6>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead><tr><th>Periode</th><th>Karyawan</th><th>Jenis</th><th>Hari</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var x in Model.Encashments)
+                    {
+                        <tr><td>@x.PeriodName</td><td>@x.EmployeeName</td><td>@x.LeaveTypeName</td><td>@x.Days</td><td><span class="status-@x.Status">@x.Status</span></td></tr>
+                    }
+                    @if (!Model.Encashments.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">Belum ada pengajuan.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card p-3">
+            <h6>Riwayat Klaim Kesehatan</h6>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead><tr><th>Periode</th><th>Karyawan</th><th>Nominal</th><th>Status</th><th>Keterangan</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var x in Model.Claims)
+                    {
+                        <tr><td>@x.PeriodName</td><td>@x.EmployeeName</td><td>Rp @x.Amount.ToString("N0")</td><td><span class="status-@x.Status">@x.Status</span></td><td>@(x.Description ?? "-")</td><td>
+                            @if (User.IsInRole("HR") || User.IsInRole("Support"))
+                            {
+                                @if (x.Status == "Pending") { <span class="small text-muted">Menunggu approval</span> }
+                                @if (x.Status == "Approved") { <form method="post" asp-page-handler="HealthStatus" asp-route-id="@x.Id" class="d-inline"><input type="hidden" name="status" value="Paid" /><button class="btn btn-outline-primary btn-sm">Paid</button></form> }
+                            }
+                        </td></tr>
+                    }
+                    @if (!Model.Claims.Any()) { <tr><td colspan="6" class="text-center text-muted py-3">Belum ada klaim.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+            <div class="small text-muted mt-2">Klaim kesehatan tidak memiliki plafon otomatis; pemeriksaan nominal dilakukan manual oleh HR sesuai desain Batch D.</div>
+        </div>
+    </div>
+</div>

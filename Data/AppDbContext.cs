@@ -46,6 +46,10 @@ public class AppDbContext : DbContext
     public DbSet<ApprovalFlowStep> ApprovalFlowSteps => Set<ApprovalFlowStep>();
     public DbSet<DocumentCategory> DocumentCategories => Set<DocumentCategory>();
     public DbSet<ModuleEligibility> ModuleEligibilities => Set<ModuleEligibility>();
+    public DbSet<WorkType> WorkTypes => Set<WorkType>();
+    public DbSet<PublicHoliday> PublicHolidays => Set<PublicHoliday>();
+    public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<MeetingRoom> MeetingRooms => Set<MeetingRoom>();
 
     // --- MST_* ---
     public DbSet<Employee> Employees => Set<Employee>();
@@ -92,6 +96,12 @@ public class AppDbContext : DbContext
     public DbSet<LaptopRequest> LaptopRequests => Set<LaptopRequest>();
     public DbSet<LaptopStatusLog> LaptopStatusLogs => Set<LaptopStatusLog>();
     public DbSet<ServiceAward> ServiceAwards => Set<ServiceAward>();
+    public DbSet<LeaveBalance> LeaveBalances => Set<LeaveBalance>();
+    public DbSet<FlexPeriod> FlexPeriods => Set<FlexPeriod>();
+    public DbSet<LeaveEncashment> LeaveEncashments => Set<LeaveEncashment>();
+    public DbSet<HealthClaim> HealthClaims => Set<HealthClaim>();
+    public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
+    public DbSet<ManpowerRequest> ManpowerRequests => Set<ManpowerRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -130,6 +140,10 @@ public class AppDbContext : DbContext
         MapTable<ApprovalFlowStep>(modelBuilder, "REF_Approval_Flow_Step", "flow_step_id");
         MapTable<DocumentCategory>(modelBuilder, "REF_Document_Category", "category_id");
         MapTable<ModuleEligibility>(modelBuilder, "REF_Module_Eligibility", "eligibility_id");
+        MapTable<WorkType>(modelBuilder, "REF_Work_Type", "work_type_id");
+        MapTable<PublicHoliday>(modelBuilder, "REF_Public_Holiday", "holiday_id");
+        MapTable<LeaveType>(modelBuilder, "REF_Leave_Type", "leave_type_id");
+        MapTable<MeetingRoom>(modelBuilder, "REF_Meeting_Room", "room_id");
 
         modelBuilder.Entity<JobTitle>().Property(j => j.JobTitleName).HasColumnName("job_title");
 
@@ -179,6 +193,14 @@ public class AppDbContext : DbContext
         MapTable<LaptopRequest>(modelBuilder, "TRX_Laptop_Request", "laptop_id");
         MapTable<LaptopStatusLog>(modelBuilder, "TRX_Laptop_Status_Log", "log_id");
         MapTable<ServiceAward>(modelBuilder, "TRX_Service_Award", "award_id");
+        MapTable<LeaveBalance>(modelBuilder, "TRX_Leave_Balance", "balance_id");
+        MapTable<FlexPeriod>(modelBuilder, "TRX_Flex_Period", "period_id");
+        MapTable<LeaveEncashment>(modelBuilder, "TRX_Leave_Encashment", "encashment_id");
+        MapTable<HealthClaim>(modelBuilder, "TRX_Health_Claim", "claim_id");
+        MapTable<RoomBooking>(modelBuilder, "TRX_Room_Booking", "booking_id");
+        MapTable<ManpowerRequest>(modelBuilder, "TRX_Manpower_Request", "manpower_id");
+        modelBuilder.Entity<RoomBooking>().Property(x => x.BookedByEmployeeId).HasColumnName("booked_by");
+        modelBuilder.Entity<ManpowerRequest>().Property(x => x.RequestedByEmployeeId).HasColumnName("requested_by");
 
         // --- Enum disimpan sebagai string di SQLite, biar gampang dibaca manual saat debug ---
         modelBuilder.Entity<LeaveRequest>().Property(l => l.Status).HasConversion<string>();
@@ -240,6 +262,13 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ServiceAward>().HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<ServiceAward>().HasIndex(x => new { x.EmployeeId, x.ServiceYears }).IsUnique();
+        modelBuilder.Entity<Attendance>().HasIndex(x => new { x.EmployeeId, x.Date }).IsUnique();
+        modelBuilder.Entity<LeaveBalance>().HasIndex(x => new { x.EmployeeId, x.LeaveTypeId, x.Year }).IsUnique();
+        modelBuilder.Entity<WorkType>().HasIndex(x => x.Name).IsUnique();
+        modelBuilder.Entity<LeaveType>().HasIndex(x => x.Name).IsUnique();
+        modelBuilder.Entity<PublicHoliday>().HasIndex(x => x.Date).IsUnique();
+        modelBuilder.Entity<MeetingRoom>().HasIndex(x => x.Name).IsUnique();
+        modelBuilder.Entity<RoomBooking>().HasIndex(x => new { x.RoomId, x.StartTime, x.EndTime });
 
         // Baris Employment terkini (end_date NULL) hanya boleh satu per karyawan.
         // Partial index didukung SQLite.
@@ -368,6 +397,23 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LeaveRequest>()
             .HasOne(l => l.Employee).WithMany().HasForeignKey(l => l.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Attendance>().HasOne(a=>a.WorkType).WithMany().HasForeignKey(a=>a.WorkTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LeaveRequest>().HasOne(l=>l.LeaveType).WithMany().HasForeignKey(l=>l.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MeetingRoom>().HasOne(r=>r.Location).WithMany().HasForeignKey(r=>r.LocationId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LeaveBalance>().HasOne(x=>x.Employee).WithMany().HasForeignKey(x=>x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LeaveBalance>().HasOne(x=>x.LeaveType).WithMany().HasForeignKey(x=>x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LeaveEncashment>().HasOne(x=>x.Employee).WithMany().HasForeignKey(x=>x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LeaveEncashment>().HasOne(x=>x.Period).WithMany().HasForeignKey(x=>x.PeriodId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LeaveEncashment>().HasOne(x=>x.LeaveType).WithMany().HasForeignKey(x=>x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<HealthClaim>().HasOne(x=>x.Employee).WithMany().HasForeignKey(x=>x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<HealthClaim>().HasOne(x=>x.Period).WithMany().HasForeignKey(x=>x.PeriodId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<RoomBooking>().HasOne(x=>x.Room).WithMany().HasForeignKey(x=>x.RoomId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<RoomBooking>().HasOne(x=>x.BookedByEmployee).WithMany().HasForeignKey(x=>x.BookedByEmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ManpowerRequest>().HasOne(x=>x.RequestedByEmployee).WithMany().HasForeignKey(x=>x.RequestedByEmployeeId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ManpowerRequest>().HasOne(x=>x.Organization).WithMany().HasForeignKey(x=>x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ManpowerRequest>().HasOne(x=>x.JobTitle).WithMany().HasForeignKey(x=>x.JobTitleId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ManpowerRequest>().HasOne(x=>x.JobLevel).WithMany().HasForeignKey(x=>x.JobLevelId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ManpowerRequest>().HasOne(x=>x.EmploymentType).WithMany().HasForeignKey(x=>x.EmploymentTypeId).OnDelete(DeleteBehavior.Restrict);
 
         // --- Approval engine ---
         modelBuilder.Entity<ApprovalRequest>()

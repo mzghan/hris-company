@@ -1,0 +1,18 @@
+using HRIS.Api.Common;
+using HRIS.Api.Exceptions;
+using HRIS.Api.Models;
+using HRIS.Api.Models.Enums;
+using HRIS.Api.Repositories;
+namespace HRIS.Api.Services;
+public class ManpowerApprovalHandler : IApprovalHandler
+{
+    private readonly IManpowerRepository _repo;
+    public ManpowerApprovalHandler(IManpowerRepository repo)=>_repo=repo;
+    public string RequestType=>ApprovalRequestTypes.Manpower;
+    public async Task OnCompletedAsync(ApprovalRequest request, ApprovalRequestStatus finalStatus)
+    {
+        var x=await _repo.GetByIdAsync(request.RequestRefId) ?? throw new NotFoundException("Permintaan tenaga kerja tidak ditemukan.");
+        x.Status=finalStatus.ToString();
+        await _repo.UpdateAsync(x);
+    }
+}

@@ -15,12 +15,12 @@ public class AttendanceRepository : IAttendanceRepository
 
     public async Task<Attendance?> GetByEmployeeAndDateAsync(int employeeId, DateOnly date) =>
         await _context.Attendances
-            .Include(a => a.Employee)
+            .Include(a => a.Employee).Include(a => a.WorkType)
             .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date == date);
 
     public async Task<List<Attendance>> GetByEmployeeAsync(int employeeId) =>
         await _context.Attendances
-            .Include(a => a.Employee)
+            .Include(a => a.Employee).Include(a => a.WorkType)
             .Where(a => a.EmployeeId == employeeId)
             .OrderByDescending(a => a.Date)
             .ToListAsync();

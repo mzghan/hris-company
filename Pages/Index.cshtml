@@ -72,6 +72,16 @@
 </div>
 
 <div class="row g-3 mt-1">
+    @if (Model.HasEmployeeProfile)
+    {
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Flexible Benefit</div><div class="fw-semibold">Saldo &amp; klaim</div><a asp-page="/FlexibleBenefits/Index" class="small">Buka Flexible Benefit &rarr;</a></div></div>
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Meeting</div><div class="fw-semibold">Booking meeting room</div><a asp-page="/Booking/Index" class="small">Lihat jadwal &rarr;</a></div></div>
+    }
+    @if (Model.CanApprove || Model.IsHrOrSupport)
+    {
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Workforce</div><div class="fw-semibold">Manpower Request</div><a asp-page="/Manpower/Index" class="small">Kelola pengajuan &rarr;</a></div></div>
+    }
+
     <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Learning</div><div class="fw-semibold">My Learning Portal</div><a asp-page="/Learning/Index" class="small">Buka portal &rarr;</a></div></div>
     <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">HR Forms</div><div class="fw-semibold">Formulir HR</div><a asp-page="/Forms/Index" class="small">Lihat formulir &rarr;</a></div></div>
     <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Regulation</div><div class="fw-semibold">Peraturan perusahaan</div><a asp-page="/Regulations/Index" class="small">Baca regulasi &rarr;</a></div></div>

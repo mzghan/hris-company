@@ -12,6 +12,7 @@ public class AttendanceService : IAttendanceService
     private readonly IAttendanceRepository _repository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly ILogger<AttendanceService> _logger;
+    private readonly IReferenceRepository _referenceRepository;
     private readonly IWebHostEnvironment _env;
 
     // Folder relatif di dalam wwwroot tempat foto absen disimpan.
@@ -21,12 +22,14 @@ public class AttendanceService : IAttendanceService
         IAttendanceRepository repository,
         IEmployeeRepository employeeRepository,
         ILogger<AttendanceService> logger,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        IReferenceRepository referenceRepository)
     {
         _repository = repository;
         _employeeRepository = employeeRepository;
         _logger = logger;
         _env = env;
+        _referenceRepository = referenceRepository;
     }
 
     public async Task<AttendanceResponseDto> CheckInAsync(int employeeId, AttendanceCheckInDto dto)
@@ -35,6 +38,15 @@ public class AttendanceService : IAttendanceService
             ?? throw new NotFoundException("Employee tidak ditemukan.");
 
         ValidatePhotoAndLocation(dto.PhotoBase64, dto.Latitude, dto.Longitude);
+
+        var workTypeId = dto.WorkTypeId;
+        if (workTypeId <= 0)
+            workTypeId = await _referenceRepository.GetWorkTypeIdAsync("WFO") ?? 0;
+        var workType = await _referenceRepository.GetWorkTypeAsync(workTypeId);
+        if (workType is null)
+            throw new BadRequestException("Work Type tidak ditemukan.");
+        if (string.Equals(workType.Name, "WFH with Note", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(dto.Note))
+            throw new BadRequestException("Catatan wajib diisi untuk WFH with Note.");
 
         var today = JakartaTime.Today();
         var existing = await _repository.GetByEmployeeAndDateAsync(employeeId, today);
@@ -47,6 +59,8 @@ public class AttendanceService : IAttendanceService
             EmployeeId = employeeId,
             Date = today,
             CheckIn = JakartaTime.Now().TimeOfDay,
+            WorkTypeId = workType.Id,
+            Note = dto.Note?.Trim(),
             CheckInPhotoPath = SavePhoto(dto.PhotoBase64!, employeeId, "in"),
             CheckInLatitude = dto.Latitude,
             CheckInLongitude = dto.Longitude
@@ -134,6 +148,9 @@ public class AttendanceService : IAttendanceService
         Date = a.Date,
         CheckIn = a.CheckIn,
         CheckOut = a.CheckOut,
+        WorkTypeId = a.WorkTypeId,
+        WorkTypeName = a.WorkType?.Name ?? string.Empty,
+        Note = a.Note,
         CheckInPhotoUrl = a.CheckInPhotoPath,
         CheckInLatitude = a.CheckInLatitude,
         CheckInLongitude = a.CheckInLongitude,

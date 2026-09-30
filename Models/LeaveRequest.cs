@@ -13,6 +13,9 @@ public class LeaveRequest : IAuditable
     public int EmployeeId { get; set; }
     public Employee? Employee { get; set; }
 
+    public int LeaveTypeId { get; set; }
+    public LeaveType? LeaveType { get; set; }
+
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
 

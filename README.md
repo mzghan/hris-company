@@ -1,10 +1,10 @@
-# HRIS API (MVP 3, Batch 0: Rombak DB)
+# HRIS API (MVP 3, Batch D: Aturan Rumit)
 
 .NET 8 + EF Core + SQLite, pola `Controller → Service → Repository → DbContext`.
 Payroll dihapus. Database dirombak mengikuti ERD (`MST_*`, `REF_*`, `SYS_*`, `TRX_*`)
 dan dokumen `HRIS-MVP3-DB-Design.md`.
 
-## Yang sudah ada di Batch 0
+## Fondasi Batch 0 yang sudah ada
 - **Auth** — JWT + cookie. Role tersimpan hanya `Employee`, `HR`, `Support`.
   Manager/Head/Group Head bukan role: claim `IsManager` diisi saat login kalau punya bawahan aktif.
 - **Employee** — data pribadi + Employment + Hierarchy. Perubahan jabatan/grade/organisasi
@@ -105,3 +105,21 @@ Remove-Item hris.db* -Force -ErrorAction SilentlyContinue
 dotnet ef database update
 dotnet run
 ```
+
+
+## Batch D: Aturan rumit (modul 2, 4, 6, 18)
+
+- **Attendance (2)** — `TRX_Attendance` sekarang menyimpan `work_type_id` dan `note`, dengan `REF_Work_Type` (WFO, WFH, WFH with Note). Bukti foto + GPS tetap wajib. `WFH with Note` mewajibkan catatan. Riwayat hari kerja tetap unik per employee/tanggal.
+- **Leave (2)** — `REF_Leave_Type`, `TRX_Leave_Balance`, dan `REF_Public_Holiday` ditambahkan. Hari cuti dihitung Senin-Jumat dikurangi public holiday. Saldo dicek saat submit dan dipotong pada approval final. Leave tetap memakai approval engine Batch A; cuti >= 6 hari kerja memakai langkah Head dari konfigurasi flow.
+- **Booking Meeting (4)** — `REF_Meeting_Room` + `TRX_Room_Booking`. Sistem menolak overlap waktu pada ruang yang sama. HR/Support dapat membuat/nonaktifkan ruang dan menandai booking prioritas; pembuat dapat membatalkan booking.
+- **Flexible Benefit (6)** — `TRX_Flex_Period`, `TRX_Leave_Encashment`, dan `TRX_Health_Claim`. Penjualan cuti dan klaim kesehatan masuk approval engine. Health claim menyimpan nominal integer rupiah dan tidak memiliki plafon otomatis; status akhir `Approved`/`Paid` dapat diproses manual oleh HR. Saldo cuti yang dijual dicatat pada `sold`.
+- **Manpower Request (18)** — `TRX_Manpower_Request` memakai flow ManagerChain(1) → ManagerChain(2) → HR. Pengaju hanya Manager, HR, atau Support. Approval final mengubah status menjadi `Approved`.
+- **UI** — Navbar atas diganti menjadi sidebar responsif di `Pages/Shared/_Layout.cshtml`; menu Batch D ditambahkan dan dikelompokkan mengikuti modul.
+
+### Migration Batch D
+```powershell
+Remove-Item hris.db* -Force -ErrorAction SilentlyContinue
+dotnet ef database update
+dotnet run
+```
+

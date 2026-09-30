@@ -11,6 +11,10 @@ public class Attendance
     public TimeSpan? CheckIn { get; set; }
     public TimeSpan? CheckOut { get; set; }
 
+    public int WorkTypeId { get; set; }
+    public WorkType? WorkType { get; set; }
+    public string? Note { get; set; }
+
     // --- Bukti check-in: foto dari kamera + koordinat GPS ---
     public string? CheckInPhotoPath { get; set; }
     public double? CheckInLatitude { get; set; }

@@ -5,10 +5,8 @@
     var roleText = isAuth ? string.Join(", ", User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value)) : null;
     var isHrOrSupport = isAuth && (User.IsInRole("HR") || User.IsInRole("Support"));
     var isEmployee = isAuth && User.IsInRole("Employee");
-    // Manager/Head/Group Head bukan role tersimpan, tapi claim dari rantai atasan.
     var isManager = isAuth && User.HasClaim("IsManager", "true");
 
-    // Jumlah notifikasi belum dibaca untuk badge di navbar. Gagal baca tidak boleh merusak layout.
     var unreadCount = 0;
     if (isAuth && int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId))
     {
@@ -26,90 +24,108 @@
     <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" asp-page="/Index">HRIS</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navMenu">
-                @if (username != null)
-                {
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link" asp-page="/Index">Dashboard</a></li>
+@if (isAuth)
+{
+    <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-brand">
+            <a asp-page="/Index">HRIS</a>
+            <button type="button" class="sidebar-close d-lg-none" id="sidebarClose" aria-label="Tutup menu">&times;</button>
+        </div>
 
-                        @if (isHrOrSupport)
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Employees/Index">Karyawan</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Organizations/Index">Organisasi</a></li>
-                        }
-
-                        @if (isEmployee)
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Attendance/Index">Absensi</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Leave/Index">Cuti Saya</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Family/Index">Keluarga</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Letters/Index">HR Letter</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Parking/Index">Parking</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Declarations/Index">Declaration</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Laptops/Index">Laptop</a></li>
-                        }
-
-                        <li class="nav-item"><a class="nav-link" asp-page="/Approvals/Index">Approval</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Documents/Index">Dokumen</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Learning/Index">Learning</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Forms/Index">HR Forms</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Regulations/Index">Regulasi</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/EAP/Index">EAP</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/YES/Index">YES</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Expatriate/Index">Expatriate</a></li>
-
-                        @if (isHrOrSupport)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">KPI</a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" asp-page="/Kpi/Criteria">Kriteria KPI</a></li>
-                                    <li><a class="dropdown-item" asp-page="/Kpi/Periods">Periode KPI</a></li>
-                                </ul>
-                            </li>
-                        }
-                        @if (isManager)
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Kpi/Review">Review KPI</a></li>
-                        }
-                        @if (isAuth)
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/ServiceAwards/Index">Service Award</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Declarations/Index">Declaration</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-page="/Laptops/Index">Laptop</a></li>
-                        }
-                    </ul>
-                    <ul class="navbar-nav">
-                        <li class="nav-item d-flex align-items-center me-3">
-                            <a asp-page="/Notifications/Index" class="text-light text-decoration-none small">
-                                Notifikasi
-                                @if (unreadCount > 0)
-                                {
-                                    <span class="badge bg-danger">@unreadCount</span>
-                                }
-                            </a>
-                        </li>
-                        <li class="nav-item d-flex align-items-center me-3 text-light small">
-                            <span>@username <span class="badge bg-secondary">@roleText</span></span>
-                        </li>
-                        <li class="nav-item">
-                            <form method="post" asp-page="/Account/Logout">
-                                <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                            </form>
-                        </li>
-                    </ul>
-                }
+        <div class="sidebar-user">
+            <div class="sidebar-avatar">@(username?.Substring(0, Math.Min(username.Length, 1)).ToUpperInvariant())</div>
+            <div class="min-w-0">
+                <div class="fw-semibold text-truncate">@username</div>
+                <div class="small text-white-50 text-truncate">@roleText</div>
             </div>
         </div>
-    </nav>
 
-    <div class="container">
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">Workspace</div>
+            <a class="sidebar-link" asp-page="/Index"><span class="sidebar-icon">⌂</span>Dashboard</a>
+            <a class="sidebar-link" asp-page="/Notifications/Index"><span class="sidebar-icon">◔</span>Notifikasi @if(unreadCount>0){<span class="badge bg-danger ms-auto">@unreadCount</span>}</a>
+            <a class="sidebar-link" asp-page="/Approvals/Index"><span class="sidebar-icon">✓</span>Approval</a>
+
+            @if (isHrOrSupport)
+            {
+                <div class="sidebar-section">People &amp; Organization</div>
+                <a class="sidebar-link" asp-page="/Employees/Index"><span class="sidebar-icon">♙</span>Karyawan</a>
+                <a class="sidebar-link" asp-page="/Organizations/Index"><span class="sidebar-icon">⌘</span>Organisasi</a>
+                <a class="sidebar-link" asp-page="/Manpower/Index"><span class="sidebar-icon">+</span>Manpower Request</a>
+                <a class="sidebar-link" asp-page="/Leave/Manage"><span class="sidebar-icon">▣</span>Kelola Cuti</a>
+            }
+            else if (isManager)
+            {
+                <div class="sidebar-section">People</div>
+                <a class="sidebar-link" asp-page="/Manpower/Index"><span class="sidebar-icon">+</span>Manpower Request</a>
+            }
+
+            @if (isEmployee)
+            {
+                <div class="sidebar-section">My HR</div>
+                <a class="sidebar-link" asp-page="/Attendance/Index"><span class="sidebar-icon">◷</span>Absensi</a>
+                <a class="sidebar-link" asp-page="/Leave/Index"><span class="sidebar-icon">▣</span>Cuti Saya</a>
+                <a class="sidebar-link" asp-page="/FlexibleBenefits/Index"><span class="sidebar-icon">Rp</span>Flexible Benefit</a>
+                <a class="sidebar-link" asp-page="/Family/Index"><span class="sidebar-icon">♧</span>Keluarga</a>
+                <a class="sidebar-link" asp-page="/Booking/Index"><span class="sidebar-icon">□</span>Booking Meeting</a>
+                <a class="sidebar-link" asp-page="/Letters/Index"><span class="sidebar-icon">✉</span>HR Letter</a>
+                <a class="sidebar-link" asp-page="/Parking/Index"><span class="sidebar-icon">P</span>Parking</a>
+                <a class="sidebar-link" asp-page="/Declarations/Index"><span class="sidebar-icon">D</span>Declaration</a>
+                <a class="sidebar-link" asp-page="/Laptops/Index"><span class="sidebar-icon">L</span>Laptop</a>
+            }
+            else if (isHrOrSupport)
+            {
+                <div class="sidebar-section">HR Operations</div>
+                <a class="sidebar-link" asp-page="/FlexibleBenefits/Index"><span class="sidebar-icon">Rp</span>Flexible Benefit</a>
+                <a class="sidebar-link" asp-page="/Booking/Index"><span class="sidebar-icon">□</span>Booking Meeting</a>
+                <a class="sidebar-link" asp-page="/ServiceAwards/Index"><span class="sidebar-icon">★</span>Service Award</a>
+            }
+
+            <div class="sidebar-section">Content</div>
+            <a class="sidebar-link" asp-page="/Documents/Index"><span class="sidebar-icon">▤</span>Dokumen</a>
+            <a class="sidebar-link" asp-page="/Learning/Index"><span class="sidebar-icon">L</span>Learning</a>
+            <a class="sidebar-link" asp-page="/Forms/Index"><span class="sidebar-icon">F</span>HR Forms</a>
+            <a class="sidebar-link" asp-page="/Regulations/Index"><span class="sidebar-icon">R</span>Regulasi</a>
+            <a class="sidebar-link" asp-page="/EAP/Index"><span class="sidebar-icon">E</span>EAP</a>
+            <a class="sidebar-link" asp-page="/Expatriate/Index"><span class="sidebar-icon">X</span>Expatriate</a>
+            <a class="sidebar-link" asp-page="/YES/Index"><span class="sidebar-icon">Y</span>YES</a>
+
+            @if (isHrOrSupport)
+            {
+                <div class="sidebar-section">Performance</div>
+                <a class="sidebar-link" asp-page="/Kpi/Criteria"><span class="sidebar-icon">K</span>Kriteria KPI</a>
+                <a class="sidebar-link" asp-page="/Kpi/Periods"><span class="sidebar-icon">K</span>Periode KPI</a>
+            }
+            @if (isManager)
+            {
+                <a class="sidebar-link" asp-page="/Kpi/Review"><span class="sidebar-icon">✓</span>Review KPI</a>
+            }
+
+            <div class="sidebar-section">Account</div>
+            <form method="post" asp-page="/Account/Logout" class="sidebar-logout">
+                <button type="submit" class="sidebar-link sidebar-button"><span class="sidebar-icon">↪</span>Logout</button>
+            </form>
+        </nav>
+    </aside>
+    <div class="sidebar-overlay d-lg-none" id="sidebarOverlay"></div>
+}
+
+<main class="app-main @(isAuth ? "with-sidebar" : "")">
+    @if (isAuth)
+    {
+        <header class="app-topbar">
+            <button type="button" class="btn btn-light border d-lg-none" id="sidebarOpen" aria-label="Buka menu">☰</button>
+            <div class="small text-muted">@ViewData["Title"]</div>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <a asp-page="/Notifications/Index" class="text-decoration-none text-dark">
+                    Notifikasi @if(unreadCount>0){<span class="badge bg-danger">@unreadCount</span>}
+                </a>
+                <span class="small text-muted">@username</span>
+            </div>
+        </header>
+    }
+
+    <div class="app-content">
         @if (TempData["Success"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -131,8 +147,32 @@
     <footer class="text-center text-muted my-5 small">
         HRIS &middot; .NET 8 + Razor Pages
     </footer>
+</main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    var sidebar = document.getElementById('appSidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    var open = document.getElementById('sidebarOpen');
+    var close = document.getElementById('sidebarClose');
+    function show() {
+        if (!sidebar) return;
+        sidebar.classList.add('is-open');
+        if (overlay) overlay.classList.add('is-visible');
+        document.body.classList.add('sidebar-open');
+    }
+    function hide() {
+        if (!sidebar) return;
+        sidebar.classList.remove('is-open');
+        if (overlay) overlay.classList.remove('is-visible');
+        document.body.classList.remove('sidebar-open');
+    }
+    if (open) open.addEventListener('click', show);
+    if (close) close.addEventListener('click', hide);
+    if (overlay) overlay.addEventListener('click', hide);
+})();
+</script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

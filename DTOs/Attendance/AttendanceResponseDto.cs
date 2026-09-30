@@ -8,11 +8,12 @@ public class AttendanceResponseDto
     public DateOnly Date { get; set; }
     public TimeSpan? CheckIn { get; set; }
     public TimeSpan? CheckOut { get; set; }
-
+    public int WorkTypeId { get; set; }
+    public string WorkTypeName { get; set; } = string.Empty;
+    public string? Note { get; set; }
     public string? CheckInPhotoUrl { get; set; }
     public double? CheckInLatitude { get; set; }
     public double? CheckInLongitude { get; set; }
-
     public string? CheckOutPhotoUrl { get; set; }
     public double? CheckOutLatitude { get; set; }
     public double? CheckOutLongitude { get; set; }

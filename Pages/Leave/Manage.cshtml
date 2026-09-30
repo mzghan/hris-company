@@ -1,0 +1,64 @@
+@page
+@model HRIS.Api.Pages.Leave.ManageModel
+@{
+    ViewData["Title"] = "Kelola Cuti";
+}
+
+<div class="page-heading">
+    <div><div class="text-muted small">Attendance &amp; Leave</div><h4 class="mb-1">Kelola Saldo &amp; Hari Libur</h4><p class="text-muted mb-0">HR/Support dapat menyesuaikan saldo dan kalender kerja.</p></div>
+    <form method="get" class="d-flex gap-2"><input name="year" value="@Model.Year" type="number" class="form-control form-control-sm" style="width:100px" /><button class="btn btn-outline-secondary btn-sm">Tahun</button></form>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card p-3">
+            <h6>Saldo Cuti @Model.Year</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>Karyawan</th><th>Jenis</th><th>Entitlement</th><th>Used</th><th>Sold</th><th>Carry Over</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach(var b in Model.Balances)
+                    {
+                        <tr>
+                            <td>@b.Employee?.FullName</td><td>@b.LeaveType?.Name</td>
+                            <td colspan="4">
+                                <form method="post" asp-page-handler="Balance" class="row g-1">
+                                    <input type="hidden" name="Balance.Id" value="@b.Id" />
+                                    <input type="hidden" name="year" value="@Model.Year" />
+                                    <div class="col"><input name="Balance.Entitlement" value="@b.Entitlement" type="number" min="0" class="form-control form-control-sm" /></div>
+                                    <div class="col"><input name="Balance.Used" value="@b.Used" type="number" min="0" class="form-control form-control-sm" /></div>
+                                    <div class="col"><input name="Balance.Sold" value="@b.Sold" type="number" min="0" class="form-control form-control-sm" /></div>
+                                    <div class="col"><input name="Balance.CarriedOver" value="@b.CarriedOver" type="number" min="0" class="form-control form-control-sm" /></div>
+                                    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Simpan</button></div>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if(!Model.Balances.Any()){<tr><td colspan="7" class="text-center text-muted py-3">Belum ada saldo untuk tahun ini.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+            <div class="small text-muted">Kolom pada form berurutan: Entitlement, Used, Sold, Carry Over. Nilai tidak boleh negatif.</div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card p-3">
+            <h6>Public Holiday @Model.Year</h6>
+            <form method="post" asp-page-handler="Holiday" class="mb-3">
+                <input asp-for="Holiday.Date" type="date" class="form-control form-control-sm mb-2" />
+                <input asp-for="Holiday.Name" class="form-control form-control-sm mb-2" placeholder="Nama hari libur" />
+                <button class="btn btn-primary btn-sm w-100">Tambah Hari Libur</button>
+            </form>
+            <div class="list-group list-group-flush">
+            @foreach(var h in Model.Holidays)
+            {
+                <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                    <div><div class="fw-semibold">@h.Date.ToString("dd MMM yyyy")</div><div class="small text-muted">@h.Name</div></div>
+                    <form method="post" asp-page-handler="DeleteHoliday" asp-route-id="@h.Id" asp-route-year="@Model.Year"><button class="btn btn-outline-danger btn-sm">Hapus</button></form>
+                </div>
+            }
+            @if(!Model.Holidays.Any()){<div class="small text-muted py-2">Belum ada hari libur.</div>}
+            </div>
+        </div>
+    </div>
+</div>

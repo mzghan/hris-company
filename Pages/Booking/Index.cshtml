@@ -1,0 +1,85 @@
+@page
+@model HRIS.Api.Pages.Booking.IndexModel
+@{
+    ViewData["Title"] = "Booking Meeting";
+}
+
+<div class="page-heading">
+    <div><div class="text-muted small">Modul 4</div><h4 class="mb-1">Booking Meeting</h4><p class="text-muted mb-0">Cari ruang yang tersedia dan kelola jadwal meeting.</p></div>
+</div>
+
+<div class="row g-3">
+    @if (Model.CanBook)
+    {
+        <div class="col-xl-4">
+            <div class="card p-3">
+                <h6>Booking Baru</h6>
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <form method="post" asp-page-handler="Book">
+                    <label class="form-label small">Ruang</label>
+                    <select asp-for="Input.RoomId" class="form-select form-select-sm mb-2">
+                        <option value="">Pilih ruang</option>
+                        @foreach(var r in Model.Rooms.Where(x=>x.IsActive))
+                        { <option value="@r.Id">@r.Name — @r.Capacity orang</option> }
+                    </select>
+                    <label class="form-label small">Judul meeting</label>
+                    <input asp-for="Input.Title" class="form-control form-control-sm mb-2" />
+                    <label class="form-label small">Mulai</label>
+                    <input asp-for="Input.StartTime" type="datetime-local" class="form-control form-control-sm mb-2" />
+                    <label class="form-label small">Selesai</label>
+                    <input asp-for="Input.EndTime" type="datetime-local" class="form-control form-control-sm mb-2" />
+                    @if(Model.CanManage){<div class="form-check mb-2"><input asp-for="Input.IsPriority" class="form-check-input" /><label asp-for="Input.IsPriority" class="form-check-label small">Prioritas</label></div>}
+                    <button class="btn btn-primary btn-sm w-100">Booking</button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="col-xl-8">
+        <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Jadwal 14 Hari</h6><span class="small text-muted">@Model.Bookings.Count booking</span></div>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead><tr><th>Waktu</th><th>Ruang</th><th>Agenda</th><th>Pemesan</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach(var b in Model.Bookings)
+                    {
+                        <tr>
+                            <td>@b.StartTime.ToString("dd MMM HH:mm") - @b.EndTime.ToString("HH:mm")</td>
+                            <td>@b.RoomName @if(b.IsPriority){<span class="badge text-bg-warning">Priority</span>}</td>
+                            <td>@b.Title</td><td>@b.BookedByName</td>
+                            <td><span class="status-@b.Status">@b.Status</span></td>
+                            <td class="text-end">
+                                @if(b.Status!="Cancelled" && (Model.CanManage || b.BookedByEmployeeId == Model.CurrentEmployeeId))
+                                {
+                                    <form method="post" asp-page-handler="Cancel" asp-route-id="@b.Id" onsubmit="return confirm('Batalkan booking ini?');"><button class="btn btn-outline-danger btn-sm">Batal</button></form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if(!Model.Bookings.Any()){<tr><td colspan="6" class="text-center text-muted py-3">Belum ada booking.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if(Model.CanManage)
+{
+<div class="card p-3 mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Kelola Ruang Meeting</h6><span class="small text-muted">HR / Support</span></div>
+    <form method="post" asp-page-handler="CreateRoom" class="row g-2 align-items-end">
+        <div class="col-md-4"><label class="form-label small">Nama</label><input asp-for="Room.Name" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><label class="form-label small">Kapasitas</label><input asp-for="Room.Capacity" type="number" min="1" class="form-control form-control-sm" /></div>
+        <div class="col-md-4"><label class="form-label small">Lokasi</label><select asp-for="Room.LocationId" class="form-select form-select-sm"><option value="">-</option>@foreach(var l in Model.Locations){<option value="@l.Id">@l.Name</option>}</select></div>
+        <div class="col-md-2"><button class="btn btn-primary btn-sm w-100">Tambah</button></div>
+    </form>
+    <div class="table-responsive mt-3"><table class="table table-sm"><thead><tr><th>Ruang</th><th>Kapasitas</th><th>Lokasi</th><th>Status</th><th></th></tr></thead><tbody>
+    @foreach(var r in Model.Rooms)
+    {
+        <tr><td>@r.Name</td><td>@r.Capacity</td><td>@(r.Location?.LocationName??"-")</td><td>@(r.IsActive?"Aktif":"Nonaktif")</td><td class="text-end"><form method="post" asp-page-handler="ToggleRoom" class="d-inline"><input type="hidden" name="id" value="@r.Id" /><input type="hidden" name="active" value="@(!r.IsActive)" /><button class="btn btn-outline-secondary btn-sm">@(r.IsActive?"Nonaktifkan":"Aktifkan")</button></form></td></tr>
+    }
+    </tbody></table></div>
+</div>
+}

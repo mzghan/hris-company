@@ -13,6 +13,8 @@ public interface IReferenceRepository
     Task<int?> GetHierarchyTypeIdAsync(string name);
     Task<int?> GetContactTypeIdAsync(string name);
     Task<bool> IsModuleAllowedAsync(int employmentTypeId, string moduleCode);
+    Task<WorkType?> GetWorkTypeAsync(int id);
+    Task<int?> GetWorkTypeIdAsync(string name);
 
     // Daftar Id + Nama untuk dropdown. Null kalau nama tabel referensi tidak dikenal.
     Task<List<ReferenceOption>?> GetOptionsAsync(string type);

@@ -23,7 +23,20 @@
                 </div>
             }
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-end">
+            <div>
+                <label class="form-label small mb-1">Tipe kerja</label>
+                <select id="workTypeSelect" class="form-select form-select-sm">
+                    @foreach (var wt in Model.WorkTypes)
+                    {
+                        <option value="@wt.Id">@wt.Name</option>
+                    }
+                </select>
+            </div>
+            <div id="attendanceNoteWrap" class="d-none">
+                <label class="form-label small mb-1">Catatan</label>
+                <input id="attendanceNote" class="form-control form-control-sm" maxlength="500" placeholder="Catatan WFH" />
+            </div>
             <button type="button" class="btn btn-success" onclick="openAttendanceCamera('in')" @(Model.Today?.CheckIn is not null ? "disabled" : "")>Check-in</button>
             <button type="button" class="btn btn-warning" onclick="openAttendanceCamera('out')" @(Model.Today?.CheckIn is null || Model.Today?.CheckOut is not null ? "disabled" : "")>Check-out</button>
         </div>
@@ -36,6 +49,8 @@
     <input type="hidden" name="PhotoBase64" />
     <input type="hidden" name="Latitude" />
     <input type="hidden" name="Longitude" />
+    <input type="hidden" name="WorkTypeId" />
+    <input type="hidden" name="Note" />
 </form>
 <form id="formCheckOut" method="post" asp-page-handler="CheckOut" class="d-none">
     <input type="hidden" name="PhotoBase64" />
@@ -50,6 +65,7 @@
             <tr>
                 <th>Tanggal</th>
                 <th>Check-in</th>
+                <th>Tipe kerja</th>
                 <th>Foto &amp; Lokasi (In)</th>
                 <th>Check-out</th>
                 <th>Foto &amp; Lokasi (Out)</th>
@@ -61,6 +77,7 @@
                 <tr>
                     <td>@a.Date.ToString("dd MMM yyyy")</td>
                     <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
+                    <td><span class="badge text-bg-light">@a.WorkTypeName</span>@if (!string.IsNullOrWhiteSpace(a.Note)){<div class="small text-muted">@a.Note</div>}</td>
                     <td>
                         @if (a.CheckInPhotoUrl is not null)
                         {
@@ -96,7 +113,7 @@
             }
             @if (!Model.History.Any())
             {
-                <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat absensi.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-3">Belum ada riwayat absensi.</td></tr>
             }
         </tbody>
     </table>
@@ -239,6 +256,10 @@
         form.querySelector('[name="PhotoBase64"]').value = capturedDataUrl;
         form.querySelector('[name="Latitude"]').value = capturedLat;
         form.querySelector('[name="Longitude"]').value = capturedLng;
+        if (pendingMode === 'in') {
+            form.querySelector('[name="WorkTypeId"]').value = document.getElementById('workTypeSelect').value;
+            form.querySelector('[name="Note"]').value = document.getElementById('attendanceNote').value;
+        }
         stopStream();
         form.submit();
     });
@@ -246,6 +267,11 @@
     modalEl.addEventListener('hidden.bs.modal', function () {
         stopStream();
     });
+    document.getElementById('workTypeSelect').addEventListener('change', function () {
+        var show = this.options[this.selectedIndex].text === 'WFH with Note';
+        document.getElementById('attendanceNoteWrap').classList.toggle('d-none', !show);
+    });
+
 })();
 </script>
 }

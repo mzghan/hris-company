@@ -1,6 +1,7 @@
 using HRIS.Api.Common;
 using HRIS.Api.Controllers;
 using HRIS.Api.DTOs.Attendance;
+using HRIS.Api.DTOs.Reference;
 using HRIS.Api.Exceptions;
 using HRIS.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,14 +14,17 @@ namespace HRIS.Api.Pages.Attendance;
 public class IndexModel : PageModel
 {
     private readonly IAttendanceService _service;
+    private readonly IReferenceService _references;
 
-    public IndexModel(IAttendanceService service)
+    public IndexModel(IAttendanceService service, IReferenceService references)
     {
         _service = service;
+        _references = references;
     }
 
     public List<AttendanceResponseDto> History { get; set; } = new();
     public AttendanceResponseDto? Today { get; set; }
+    public List<ReferenceItemDto> WorkTypes { get; set; } = new();
 
     // Tanggal "hari ini" versi Jakarta (WIB), dipakai di header halaman.
     public DateOnly TodayDate { get; set; }
@@ -44,6 +48,7 @@ public class IndexModel : PageModel
             .ToList();
 
         TodayDate = JakartaTime.Today();
+        WorkTypes = await _references.GetOptionsAsync("worktype");
         Today = History.FirstOrDefault(a => a.Date == TodayDate);
     }
 
@@ -56,7 +61,9 @@ public class IndexModel : PageModel
             {
                 PhotoBase64 = PhotoBase64,
                 Latitude = Latitude,
-                Longitude = Longitude
+                Longitude = Longitude,
+                WorkTypeId = int.TryParse(Request.Form["WorkTypeId"], out var wt) ? wt : 0,
+                Note = Request.Form["Note"]
             });
             TempData["Success"] = "Check-in berhasil dicatat.";
         }
