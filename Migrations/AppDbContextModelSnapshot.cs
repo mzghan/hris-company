@@ -55,6 +55,217 @@ namespace HRIS.Api.Migrations
                     b.ToTable("REF_Address_Type", (string)null);
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalFlowStep", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("flow_step_id");
+
+                    b.Property<int?>("ApproverEmployeeId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("approver_employee_id");
+
+                    b.Property<string>("ApproverType")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("approver_type");
+
+                    b.Property<int?>("ChainDepth")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("chain_depth");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("level");
+
+                    b.Property<int?>("MinRequestedDays")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("min_requested_days");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("request_type");
+
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ref_approval_flow_step");
+
+                    b.HasIndex("ApproverEmployeeId")
+                        .HasDatabaseName("ix_ref_approval_flow_step_approver_employee_id");
+
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_ref_approval_flow_step_role_id");
+
+                    b.HasIndex("RequestType", "Level")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ref_approval_flow_step_request_type_level");
+
+                    b.ToTable("REF_Approval_Flow_Step", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("approval_id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("CurrentLevel")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("current_level");
+
+                    b.Property<int>("RequestRefId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("request_ref_id");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("request_type");
+
+                    b.Property<int>("RequesterId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("requester_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("summary");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trx_approval_request");
+
+                    b.HasIndex("RequesterId")
+                        .HasDatabaseName("ix_trx_approval_request_requester_id");
+
+                    b.HasIndex("RequestType", "RequestRefId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trx_approval_request_request_type_request_ref_id");
+
+                    b.ToTable("TRX_Approval_Request", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalStep", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("step_id");
+
+                    b.Property<DateTime?>("ActedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("acted_at");
+
+                    b.Property<int?>("ActedByUserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("acted_by_user_id");
+
+                    b.Property<int>("ApprovalId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("approval_id");
+
+                    b.Property<int?>("ApproverEmployeeId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("approver_employee_id");
+
+                    b.Property<int?>("ApproverRoleId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("approver_role_id");
+
+                    b.Property<string>("ApproverType")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("approver_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsSupportOverride")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_support_override");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trx_approval_step");
+
+                    b.HasIndex("ActedByUserId")
+                        .HasDatabaseName("ix_trx_approval_step_acted_by_user_id");
+
+                    b.HasIndex("ApproverEmployeeId")
+                        .HasDatabaseName("ix_trx_approval_step_approver_employee_id");
+
+                    b.HasIndex("ApproverRoleId")
+                        .HasDatabaseName("ix_trx_approval_step_approver_role_id");
+
+                    b.HasIndex("ApprovalId", "Level")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trx_approval_step_approval_id_level");
+
+                    b.ToTable("TRX_Approval_Step", (string)null);
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.Attendance", b =>
                 {
                     b.Property<int>("Id")
@@ -109,6 +320,50 @@ namespace HRIS.Api.Migrations
                         .HasDatabaseName("ix_trx_attendance_employee_id");
 
                     b.ToTable("TRX_Attendance", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("log_id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("action");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("detail");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("entity_type");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sys_audit_log");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_sys_audit_log_user_id");
+
+                    b.ToTable("SYS_Audit_Log", (string)null);
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.City", b =>
@@ -185,6 +440,117 @@ namespace HRIS.Api.Migrations
                     b.ToTable("REF_Country", (string)null);
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.Document", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("document_id");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("category_id");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("file_name");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<int?>("OwnerEmployeeId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("owner_employee_id");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("StoredPath")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("stored_path");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("uploaded_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trx_document");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_trx_document_category_id");
+
+                    b.HasIndex("OwnerEmployeeId")
+                        .HasDatabaseName("ix_trx_document_owner_employee_id");
+
+                    b.HasIndex("UploadedByUserId")
+                        .HasDatabaseName("ix_trx_document_uploaded_by_user_id");
+
+                    b.ToTable("TRX_Document", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.DocumentCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("category_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("parent_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ref_document_category");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_ref_document_category_parent_id");
+
+                    b.ToTable("REF_Document_Category", (string)null);
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.EducationDegree", b =>
                 {
                     b.Property<int>("Id")
@@ -231,6 +597,82 @@ namespace HRIS.Api.Migrations
                         .HasName("pk_ref_education_title");
 
                     b.ToTable("REF_Education_Title", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.EmailOutbox", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("email_id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("ToAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("to_address");
+
+                    b.Property<string>("ToName")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("to_name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trx_email_outbox");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_trx_email_outbox_status_next_attempt_at");
+
+                    b.ToTable("TRX_Email_Outbox", (string)null);
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.Employee", b =>
@@ -1298,51 +1740,6 @@ namespace HRIS.Api.Migrations
                     b.ToTable("TRX_Kpi_Score_Revision", (string)null);
                 });
 
-            modelBuilder.Entity("HRIS.Api.Models.LeaveApproval", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("leave_approval_id");
-
-                    b.Property<DateTime?>("ActedAt")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("acted_at");
-
-                    b.Property<int>("ApproverId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("approver_id");
-
-                    b.Property<int>("LeaveRequestId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("leave_request_id");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("level");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("note");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("status");
-
-                    b.HasKey("Id")
-                        .HasName("pk_trx_leave_approval");
-
-                    b.HasIndex("ApproverId")
-                        .HasDatabaseName("ix_trx_leave_approval_approver_id");
-
-                    b.HasIndex("LeaveRequestId")
-                        .HasDatabaseName("ix_trx_leave_approval_leave_request_id");
-
-                    b.ToTable("TRX_Leave_Approval", (string)null);
-                });
-
             modelBuilder.Entity("HRIS.Api.Models.LeaveRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -1354,9 +1751,13 @@ namespace HRIS.Api.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("CurrentLevel")
+                    b.Property<int?>("CreatedBy")
                         .HasColumnType("INTEGER")
-                        .HasColumnName("current_level");
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("days");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("INTEGER")
@@ -1379,6 +1780,14 @@ namespace HRIS.Api.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
 
                     b.HasKey("Id")
                         .HasName("pk_trx_leave_request");
@@ -1425,6 +1834,67 @@ namespace HRIS.Api.Migrations
                         .HasName("pk_ref_marital_status");
 
                     b.ToTable("REF_Marital_Status", (string)null);
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("notification_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("link_url");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trx_notification");
+
+                    b.HasIndex("UserId", "IsRead")
+                        .HasDatabaseName("ix_trx_notification_user_id_is_read");
+
+                    b.ToTable("TRX_Notification", (string)null);
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.Organization", b =>
@@ -1671,6 +2141,73 @@ namespace HRIS.Api.Migrations
                     b.ToTable("REF_Vendor", (string)null);
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalFlowStep", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.Employee", "ApproverEmployee")
+                        .WithMany()
+                        .HasForeignKey("ApproverEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ref_approval_flow_step_employees_approver_employee_id");
+
+                    b.HasOne("HRIS.Api.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ref_approval_flow_step_roles_role_id");
+
+                    b.Navigation("ApproverEmployee");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalRequest", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.Employee", "Requester")
+                        .WithMany()
+                        .HasForeignKey("RequesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trx_approval_request_mst_employee_requester_id");
+
+                    b.Navigation("Requester");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalStep", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.User", "ActedByUser")
+                        .WithMany()
+                        .HasForeignKey("ActedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_trx_approval_step_sys_user_acted_by_user_id");
+
+                    b.HasOne("HRIS.Api.Models.ApprovalRequest", "Approval")
+                        .WithMany("Steps")
+                        .HasForeignKey("ApprovalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_trx_approval_step_trx_approval_request_approval_id");
+
+                    b.HasOne("HRIS.Api.Models.Employee", "ApproverEmployee")
+                        .WithMany()
+                        .HasForeignKey("ApproverEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_trx_approval_step_mst_employee_approver_employee_id");
+
+                    b.HasOne("HRIS.Api.Models.Role", "ApproverRole")
+                        .WithMany()
+                        .HasForeignKey("ApproverRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_trx_approval_step_sys_role_approver_role_id");
+
+                    b.Navigation("ActedByUser");
+
+                    b.Navigation("Approval");
+
+                    b.Navigation("ApproverEmployee");
+
+                    b.Navigation("ApproverRole");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.Attendance", b =>
                 {
                     b.HasOne("HRIS.Api.Models.Employee", "Employee")
@@ -1683,6 +2220,17 @@ namespace HRIS.Api.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.AuditLog", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_sys_audit_log_sys_user_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.City", b =>
                 {
                     b.HasOne("HRIS.Api.Models.Province", "Province")
@@ -1693,6 +2241,46 @@ namespace HRIS.Api.Migrations
                         .HasConstraintName("fk_ref_city_ref_province_province_id");
 
                     b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.Document", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.DocumentCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trx_document_ref_document_category_category_id");
+
+                    b.HasOne("HRIS.Api.Models.Employee", "OwnerEmployee")
+                        .WithMany()
+                        .HasForeignKey("OwnerEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_trx_document_mst_employee_owner_employee_id");
+
+                    b.HasOne("HRIS.Api.Models.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trx_document_sys_user_uploaded_by_user_id");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("OwnerEmployee");
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.DocumentCategory", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.DocumentCategory", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ref_document_category_ref_document_category_parent_id");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.Employee", b =>
@@ -2095,27 +2683,6 @@ namespace HRIS.Api.Migrations
                     b.Navigation("RevisedByUser");
                 });
 
-            modelBuilder.Entity("HRIS.Api.Models.LeaveApproval", b =>
-                {
-                    b.HasOne("HRIS.Api.Models.Employee", "Approver")
-                        .WithMany()
-                        .HasForeignKey("ApproverId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_trx_leave_approval_mst_employee_approver_id");
-
-                    b.HasOne("HRIS.Api.Models.LeaveRequest", "LeaveRequest")
-                        .WithMany("Approvals")
-                        .HasForeignKey("LeaveRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_trx_leave_approval_trx_leave_request_leave_request_id");
-
-                    b.Navigation("Approver");
-
-                    b.Navigation("LeaveRequest");
-                });
-
             modelBuilder.Entity("HRIS.Api.Models.LeaveRequest", b =>
                 {
                     b.HasOne("HRIS.Api.Models.Employee", "Employee")
@@ -2126,6 +2693,18 @@ namespace HRIS.Api.Migrations
                         .HasConstraintName("fk_trx_leave_request_mst_employee_employee_id");
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.Notification", b =>
+                {
+                    b.HasOne("HRIS.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_trx_notification_sys_user_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.Organization", b =>
@@ -2183,6 +2762,16 @@ namespace HRIS.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HRIS.Api.Models.ApprovalRequest", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("HRIS.Api.Models.DocumentCategory", b =>
+                {
+                    b.Navigation("Children");
+                });
+
             modelBuilder.Entity("HRIS.Api.Models.Employee", b =>
                 {
                     b.Navigation("Addresses");
@@ -2214,11 +2803,6 @@ namespace HRIS.Api.Migrations
             modelBuilder.Entity("HRIS.Api.Models.KpiPeriod", b =>
                 {
                     b.Navigation("Scores");
-                });
-
-            modelBuilder.Entity("HRIS.Api.Models.LeaveRequest", b =>
-                {
-                    b.Navigation("Approvals");
                 });
 
             modelBuilder.Entity("HRIS.Api.Models.Organization", b =>

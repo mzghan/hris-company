@@ -34,9 +34,11 @@
                 <thead>
                     <tr>
                         <th>Periode</th>
+                        <th>Hari Kerja</th>
                         <th>Alasan</th>
                         <th>Status</th>
-                        <th>Level Saat Ini</th>
+                        <th>Persetujuan</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,14 +46,30 @@
                     {
                         <tr>
                             <td>@r.StartDate.ToString("dd MMM yyyy") - @r.EndDate.ToString("dd MMM yyyy")</td>
+                            <td>@r.Days</td>
                             <td>@(r.Reason ?? "-")</td>
                             <td><span class="status-@r.Status">@r.Status</span></td>
-                            <td>@r.CurrentLevel</td>
+                            <td>
+                                <ul class="list-unstyled small mb-0">
+                                    @foreach (var a in r.Approvals)
+                                    {
+                                        <li>@a.Level. @a.ApproverName <span class="status-@a.Status">@a.Status</span></li>
+                                    }
+                                </ul>
+                            </td>
+                            <td class="text-end">
+                                @if (r.Status == "Pending")
+                                {
+                                    <form method="post" asp-page-handler="Cancel" asp-route-id="@r.Id" onsubmit="return confirm('Batalkan pengajuan cuti ini?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Batalkan</button>
+                                    </form>
+                                }
+                            </td>
                         </tr>
                     }
                     @if (!Model.MyRequests.Any())
                     {
-                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada pengajuan cuti.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-3">Belum ada pengajuan cuti.</td></tr>
                     }
                 </tbody>
             </table>

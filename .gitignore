@@ -6,3 +6,6 @@ obj/
 .vs/
 .vscode/*.log
 appsettings.Local.json
+
+# File dokumen yang diunggah (Batch A)
+App_Data/

@@ -1,0 +1,111 @@
+@page
+@model HRIS.Api.Pages.Documents.IndexModel
+@{
+    ViewData["Title"] = "Dokumen";
+}
+
+<h4 class="mb-3">Dokumen</h4>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card p-3 mb-3">
+            <h6>Kategori</h6>
+            <div class="list-group list-group-flush">
+                <a asp-page="/Documents/Index" class="list-group-item list-group-item-action @(Model.CategoryId == null ? "active" : "")">Semua</a>
+                @foreach (var c in Model.Categories)
+                {
+                    <a asp-page="/Documents/Index" asp-route-categoryId="@c.Id"
+                       class="list-group-item list-group-item-action d-flex justify-content-between @(Model.CategoryId == c.Id ? "active" : "")">
+                        <span>@c.FullName</span>
+                        <span class="badge bg-secondary">@c.DocumentCount</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        @if (Model.CanManage)
+        {
+            <div class="card p-3 mb-3">
+                <h6>Unggah Dokumen</h6>
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+                    <div class="mb-2">
+                        <input type="file" name="file" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="mb-2">
+                        <input type="text" name="title" class="form-control form-control-sm" placeholder="Judul (opsional)" />
+                    </div>
+                    <div class="mb-2">
+                        <select name="categoryId" asp-items="Model.CategoryOptions" class="form-select form-select-sm" required>
+                            <option value="">-- Kategori --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <select name="ownerEmployeeId" asp-items="Model.EmployeeOptions" class="form-select form-select-sm">
+                            <option value="">Dokumen umum (semua karyawan)</option>
+                        </select>
+                        <div class="form-text">Pilih karyawan untuk dokumen pribadi (surat jadi, dokumen ekspat, dll).</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Unggah</button>
+                </form>
+            </div>
+
+            <div class="card p-3">
+                <h6>Tambah Kategori</h6>
+                <form method="post" asp-page-handler="AddCategory">
+                    <div class="mb-2">
+                        <input type="text" name="name" class="form-control form-control-sm" placeholder="Nama kategori" required />
+                    </div>
+                    <div class="mb-2">
+                        <select name="parentId" asp-items="Model.CategoryOptions" class="form-select form-select-sm">
+                            <option value="">-- Kategori paling atas --</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">Tambah</button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-8">
+        <div class="card p-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Kategori</th>
+                        <th>Ukuran</th>
+                        <th>Pemilik</th>
+                        <th class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model.Documents)
+                    {
+                        <tr>
+                            <td>
+                                <div>@d.Title</div>
+                                <div class="small text-muted">@d.FileName</div>
+                            </td>
+                            <td>@d.CategoryName</td>
+                            <td>@((d.SizeBytes / 1024.0).ToString("N0")) KB</td>
+                            <td>@(d.OwnerEmployeeName ?? "Umum")</td>
+                            <td class="text-end">
+                                <a asp-page="/Documents/Index" asp-page-handler="Download" asp-route-id="@d.Id" class="btn btn-sm btn-outline-secondary">Unduh</a>
+                                @if (Model.CanManage)
+                                {
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@d.Id" class="d-inline" onsubmit="return confirm('Hapus dokumen ini?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Documents.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-3">Belum ada dokumen.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

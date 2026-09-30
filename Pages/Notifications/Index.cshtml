@@ -1,0 +1,35 @@
+@page
+@model HRIS.Api.Pages.Notifications.IndexModel
+@{
+    ViewData["Title"] = "Notifikasi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Notifikasi</h4>
+    <form method="post" asp-page-handler="ReadAll">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Tandai semua dibaca</button>
+    </form>
+</div>
+
+<div class="card">
+    <ul class="list-group list-group-flush">
+        @foreach (var n in Model.Items)
+        {
+            <li class="list-group-item @(n.IsRead ? "" : "bg-light")">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="@(n.IsRead ? "" : "fw-bold")">
+                            <a asp-page="/Notifications/Index" asp-page-handler="Open" asp-route-id="@n.Id" asp-route-to="@n.LinkUrl" class="text-decoration-none text-reset">@n.Title</a>
+                        </div>
+                        <div class="small text-muted">@n.Message</div>
+                    </div>
+                    <div class="small text-muted text-nowrap ms-3">@n.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                </div>
+            </li>
+        }
+        @if (!Model.Items.Any())
+        {
+            <li class="list-group-item text-center text-muted py-3">Belum ada notifikasi.</li>
+        }
+    </ul>
+</div>

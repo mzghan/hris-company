@@ -3,7 +3,10 @@ using HRIS.Api.Models.Enums;
 
 namespace HRIS.Api.Models;
 
-public class LeaveRequest
+// TRX_Leave_Request. Persetujuan tidak lagi disimpan di sini: approver dan langkahnya ada
+// di approval engine (TRX_Approval_Request dengan request_type "Leave" dan request_ref_id = Id).
+// Status di sini hanya cerminan hasil akhir, diisi oleh LeaveApprovalHandler.
+public class LeaveRequest : IAuditable
 {
     public int Id { get; set; }
 
@@ -13,16 +16,17 @@ public class LeaveRequest
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
 
+    // Jumlah hari kerja (Senin-Jumat). Dasar aturan "cuti panjang" di alur approval.
+    // Libur nasional baru dikurangi setelah REF_Public_Holiday ada (Batch D).
+    public int Days { get; set; }
+
     [MaxLength(500)]
     public string? Reason { get; set; }
 
     public LeaveRequestStatus Status { get; set; } = LeaveRequestStatus.Pending;
 
-    // Level approval yang sedang aktif/ditunggu. Approver level lain
-    // baru boleh action setelah level sebelumnya Approved.
-    public int CurrentLevel { get; set; } = 1;
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public ICollection<LeaveApproval> Approvals { get; set; } = new List<LeaveApproval>();
+    public int? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public int? UpdatedBy { get; set; }
 }

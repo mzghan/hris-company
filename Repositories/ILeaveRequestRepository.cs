@@ -7,9 +7,8 @@ public interface ILeaveRequestRepository
     Task<List<LeaveRequest>> GetByEmployeeAsync(int employeeId);
     Task<LeaveRequest?> GetByIdAsync(int id);
 
-    // Leave request yang sedang menunggu approval dari approverId tertentu
-    // (dicocokkan lewat LeaveApproval.ApproverId + CurrentLevel).
-    Task<List<LeaveRequest>> GetPendingForApproverAsync(int approverEmployeeId);
+    // Ada pengajuan Pending/Approved milik employee yang tanggalnya bertabrakan?
+    Task<bool> HasOverlapAsync(int employeeId, DateOnly startDate, DateOnly endDate);
 
     Task<LeaveRequest> AddAsync(LeaveRequest leaveRequest);
     Task UpdateAsync(LeaveRequest leaveRequest);

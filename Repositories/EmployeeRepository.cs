@@ -55,7 +55,8 @@ public class EmployeeRepository : IEmployeeRepository
 
     public async Task UpdateAsync(Employee employee)
     {
-        _context.Employees.Update(employee);
+        // Entity sudah tracked (dari GetByIdAsync). Update() akan menandai seluruh graph
+        // (Employment, Contact, Hierarchy) Modified dan mengisi updated_at semuanya.
         await _context.SaveChangesAsync();
     }
 

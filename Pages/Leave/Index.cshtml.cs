@@ -74,4 +74,18 @@ public class IndexModel : PageModel
             return Page();
         }
     }
+
+    public async Task<IActionResult> OnPostCancelAsync(int id)
+    {
+        try
+        {
+            await _service.CancelAsync(id, User.ToUserContext());
+            TempData["Success"] = "Pengajuan cuti dibatalkan.";
+        }
+        catch (Exception ex) when (ex is BadRequestException or ForbiddenException or NotFoundException)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        return RedirectToPage();
+    }
 }

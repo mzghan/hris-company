@@ -14,11 +14,9 @@ public class LeaveRequestRepository : ILeaveRequestRepository
         _context = context;
     }
 
+    // Approver & langkahnya tidak lagi di-include di sini: ada di approval engine (IApprovalService).
     private IQueryable<LeaveRequest> BaseQuery() =>
-        _context.LeaveRequests
-            .Include(l => l.Employee)
-            .Include(l => l.Approvals)
-                .ThenInclude(a => a.Approver);
+        _context.LeaveRequests.Include(l => l.Employee);
 
     public async Task<List<LeaveRequest>> GetByEmployeeAsync(int employeeId) =>
         await BaseQuery()
@@ -29,14 +27,12 @@ public class LeaveRequestRepository : ILeaveRequestRepository
     public async Task<LeaveRequest?> GetByIdAsync(int id) =>
         await BaseQuery().FirstOrDefaultAsync(l => l.Id == id);
 
-    public async Task<List<LeaveRequest>> GetPendingForApproverAsync(int approverEmployeeId) =>
-        await BaseQuery()
-            .Where(l => l.Status == LeaveRequestStatus.Pending &&
-                        l.Approvals.Any(a => a.ApproverId == approverEmployeeId &&
-                                              a.Level == l.CurrentLevel &&
-                                              a.Status == ApprovalStatus.Pending))
-            .OrderBy(l => l.CreatedAt)
-            .ToListAsync();
+    public async Task<bool> HasOverlapAsync(int employeeId, DateOnly startDate, DateOnly endDate) =>
+        await _context.LeaveRequests.AnyAsync(l =>
+            l.EmployeeId == employeeId
+            && (l.Status == LeaveRequestStatus.Pending || l.Status == LeaveRequestStatus.Approved)
+            && l.StartDate <= endDate
+            && l.EndDate >= startDate);
 
     public async Task<LeaveRequest> AddAsync(LeaveRequest leaveRequest)
     {
@@ -47,7 +43,7 @@ public class LeaveRequestRepository : ILeaveRequestRepository
 
     public async Task UpdateAsync(LeaveRequest leaveRequest)
     {
-        _context.LeaveRequests.Update(leaveRequest);
+        // Entity sudah tracked; Update() akan ikut menandai Employee (include) sebagai Modified.
         await _context.SaveChangesAsync();
     }
 }

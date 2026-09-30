@@ -11,15 +11,18 @@ public class IndexModel : PageModel
     private readonly IEmployeeService _employeeService;
     private readonly ILeaveRequestService _leaveService;
     private readonly IAttendanceService _attendanceService;
+    private readonly IApprovalService _approvalService;
 
     public IndexModel(
         IEmployeeService employeeService,
         ILeaveRequestService leaveService,
-        IAttendanceService attendanceService)
+        IAttendanceService attendanceService,
+        IApprovalService approvalService)
     {
         _employeeService = employeeService;
         _leaveService = leaveService;
         _attendanceService = attendanceService;
+        _approvalService = approvalService;
     }
 
     public string Role { get; set; } = string.Empty;
@@ -29,7 +32,7 @@ public class IndexModel : PageModel
     public bool CanApprove { get; set; }
 
     public int? TotalEmployees { get; set; }
-    public int? PendingLeaveApprovals { get; set; }
+    public int PendingApprovals { get; set; }
     public int? MyPendingLeaveCount { get; set; }
     public bool CheckedInToday { get; set; }
     public bool CheckedOutToday { get; set; }
@@ -47,11 +50,8 @@ public class IndexModel : PageModel
             TotalEmployees = (await _employeeService.GetAllAsync()).Count;
         }
 
-        if (CanApprove && HasEmployeeProfile)
-        {
-            var employeeId = User.GetEmployeeId();
-            PendingLeaveApprovals = (await _leaveService.GetPendingForApproverAsync(employeeId)).Count;
-        }
+        // Inbox approval berlaku untuk semua jenis pengajuan (approver bisa juga bertipe Role, mis. HR).
+        PendingApprovals = (await _approvalService.GetInboxAsync(User.ToUserContext())).Count;
 
         if (HasEmployeeProfile)
         {

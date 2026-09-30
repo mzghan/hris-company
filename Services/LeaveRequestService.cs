@@ -1,3 +1,4 @@
+using HRIS.Api.Common;
 using HRIS.Api.DTOs.Leave;
 using HRIS.Api.Exceptions;
 using HRIS.Api.Models;
@@ -10,19 +11,22 @@ public class LeaveRequestService : ILeaveRequestService
 {
     private readonly ILeaveRequestRepository _leaveRepository;
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IApprovalService _approvalService;
+    private readonly ITransactionRunner _transaction;
     private readonly ILogger<LeaveRequestService> _logger;
-    private readonly int _maxApprovalLevels;
 
     public LeaveRequestService(
         ILeaveRequestRepository leaveRepository,
         IEmployeeRepository employeeRepository,
-        ILogger<LeaveRequestService> logger,
-        IConfiguration config)
+        IApprovalService approvalService,
+        ITransactionRunner transaction,
+        ILogger<LeaveRequestService> logger)
     {
         _leaveRepository = leaveRepository;
         _employeeRepository = employeeRepository;
+        _approvalService = approvalService;
+        _transaction = transaction;
         _logger = logger;
-        _maxApprovalLevels = int.Parse(config["LeaveApproval:MaxLevels"] ?? "2");
     }
 
     public async Task<LeaveRequestResponseDto> CreateAsync(int employeeId, LeaveRequestCreateDto dto)
@@ -30,143 +34,101 @@ public class LeaveRequestService : ILeaveRequestService
         if (dto.EndDate < dto.StartDate)
             throw new BadRequestException("EndDate tidak boleh sebelum StartDate.");
 
-        var employee = await _employeeRepository.GetByIdAsync(employeeId)
+        if (dto.EndDate.DayNumber - dto.StartDate.DayNumber > 365)
+            throw new BadRequestException("Rentang cuti maksimal 1 tahun.");
+
+        var days = CountWorkingDays(dto.StartDate, dto.EndDate);
+        if (days <= 0)
+            throw new BadRequestException("Rentang tanggal tidak mencakup hari kerja (Senin-Jumat).");
+
+        _ = await _employeeRepository.GetByIdAsync(employeeId)
             ?? throw new NotFoundException("Employee tidak ditemukan.");
 
-        // Susun rantai approver dengan menelusuri Direct Manager di MST_Employee_Hierarchy ke atas,
-        // maksimal sebanyak _maxApprovalLevels. Kalau employee tidak punya
-        // manager sama sekali, leave request langsung tidak punya approval
-        // (kasus tepi yang perlu didiskusikan lagi kalau muncul di data nyata).
-        var managerChain = await _employeeRepository.GetManagerChainAsync(employeeId, _maxApprovalLevels);
+        if (await _leaveRepository.HasOverlapAsync(employeeId, dto.StartDate, dto.EndDate))
+            throw new BadRequestException("Sudah ada pengajuan cuti (Pending/Approved) yang bertabrakan dengan tanggal ini.");
 
-        if (managerChain.Count == 0)
-            throw new BadRequestException("Employee ini tidak punya manager terdaftar, tidak bisa membuat leave request.");
-
-        var leaveRequest = new LeaveRequest
+        // Pengajuan dan approval-nya dibuat dalam satu transaction: kalau approver tidak bisa
+        // ditentukan (mis. belum punya atasan), pengajuan cuti ikut dibatalkan.
+        return await _transaction.RunAsync(async () =>
         {
-            EmployeeId = employeeId,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            Reason = dto.Reason,
-            Status = LeaveRequestStatus.Pending,
-            CurrentLevel = 1
-        };
-
-        for (int i = 0; i < managerChain.Count; i++)
-        {
-            leaveRequest.Approvals.Add(new LeaveApproval
+            var leave = await _leaveRepository.AddAsync(new LeaveRequest
             {
-                ApproverId = managerChain[i].Id,
-                Level = i + 1,
-                Status = ApprovalStatus.Pending
+                EmployeeId = employeeId,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                Days = days,
+                Reason = dto.Reason,
+                Status = LeaveRequestStatus.Pending
             });
-        }
 
-        await _leaveRepository.AddAsync(leaveRequest);
-        _logger.LogInformation(
-            "LeaveRequest {Id} dibuat untuk employee {EmployeeId} dengan {Levels} level approval",
-            leaveRequest.Id, employeeId, managerChain.Count);
+            var summary = $"Cuti {dto.StartDate:dd MMM yyyy} - {dto.EndDate:dd MMM yyyy} ({days} hari kerja)";
+            await _approvalService.SubmitAsync(ApprovalRequestTypes.Leave, leave.Id, employeeId, summary, days);
 
-        var created = await _leaveRepository.GetByIdAsync(leaveRequest.Id);
-        return ToDto(created!);
+            _logger.LogInformation("LeaveRequest {Id} dibuat untuk employee {EmployeeId} ({Days} hari kerja)", leave.Id, employeeId, days);
+
+            var created = await _leaveRepository.GetByIdAsync(leave.Id);
+            return await ToDtoAsync(created!, null);
+        });
     }
 
     public async Task<List<LeaveRequestResponseDto>> GetMyRequestsAsync(int employeeId)
     {
         var requests = await _leaveRepository.GetByEmployeeAsync(employeeId);
-        return requests.Select(ToDto).ToList();
+        var approvals = await _approvalService.GetByRefsAsync(ApprovalRequestTypes.Leave, requests.Select(r => r.Id));
+        return requests.Select(r => ToDto(r, approvals.GetValueOrDefault(r.Id))).ToList();
     }
 
-    public async Task<List<LeaveRequestResponseDto>> GetPendingForApproverAsync(int approverEmployeeId)
+    public async Task<LeaveRequestResponseDto> CancelAsync(int leaveRequestId, UserContext actor)
     {
-        var requests = await _leaveRepository.GetPendingForApproverAsync(approverEmployeeId);
-        return requests.Select(ToDto).ToList();
-    }
-
-    public async Task<LeaveRequestResponseDto> ApproveAsync(int leaveRequestId, int approverEmployeeId, LeaveApprovalActionDto dto)
-    {
-        var (leaveRequest, currentApproval) = await GetActiveApprovalOrThrow(leaveRequestId, approverEmployeeId);
-
-        currentApproval.Status = ApprovalStatus.Approved;
-        currentApproval.Note = dto.Note;
-        currentApproval.ActedAt = DateTime.UtcNow;
-
-        var nextLevel = leaveRequest.Approvals.FirstOrDefault(a => a.Level == leaveRequest.CurrentLevel + 1);
-        if (nextLevel is not null)
-        {
-            leaveRequest.CurrentLevel += 1;
-        }
-        else
-        {
-            leaveRequest.Status = LeaveRequestStatus.Approved;
-        }
-
-        await _leaveRepository.UpdateAsync(leaveRequest);
-        _logger.LogInformation(
-            "LeaveRequest {Id} di-approve oleh employee {ApproverId} di level {Level}",
-            leaveRequestId, approverEmployeeId, currentApproval.Level);
-
-        var updated = await _leaveRepository.GetByIdAsync(leaveRequestId);
-        return ToDto(updated!);
-    }
-
-    public async Task<LeaveRequestResponseDto> RejectAsync(int leaveRequestId, int approverEmployeeId, LeaveApprovalActionDto dto)
-    {
-        var (leaveRequest, currentApproval) = await GetActiveApprovalOrThrow(leaveRequestId, approverEmployeeId);
-
-        currentApproval.Status = ApprovalStatus.Rejected;
-        currentApproval.Note = dto.Note;
-        currentApproval.ActedAt = DateTime.UtcNow;
-        leaveRequest.Status = LeaveRequestStatus.Rejected;
-
-        await _leaveRepository.UpdateAsync(leaveRequest);
-        _logger.LogInformation(
-            "LeaveRequest {Id} di-reject oleh employee {ApproverId} di level {Level}",
-            leaveRequestId, approverEmployeeId, currentApproval.Level);
-
-        var updated = await _leaveRepository.GetByIdAsync(leaveRequestId);
-        return ToDto(updated!);
-    }
-
-    private async Task<(LeaveRequest leaveRequest, LeaveApproval approval)> GetActiveApprovalOrThrow(int leaveRequestId, int approverEmployeeId)
-    {
-        var leaveRequest = await _leaveRepository.GetByIdAsync(leaveRequestId)
+        var leave = await _leaveRepository.GetByIdAsync(leaveRequestId)
             ?? throw new NotFoundException($"LeaveRequest dengan id {leaveRequestId} tidak ditemukan.");
 
-        if (leaveRequest.Status != LeaveRequestStatus.Pending)
-            throw new BadRequestException("LeaveRequest ini sudah tidak berstatus Pending.");
+        var isOwner = actor.EmployeeId is not null && actor.EmployeeId == leave.EmployeeId;
+        if (!isOwner && !actor.IsSupport)
+            throw new ForbiddenException("Hanya pengaju yang boleh membatalkan cuti ini.");
 
-        var approval = leaveRequest.Approvals.FirstOrDefault(a => a.Level == leaveRequest.CurrentLevel)
-            ?? throw new BadRequestException("Tidak ada approval aktif pada level ini.");
+        var approvals = await _approvalService.GetByRefsAsync(ApprovalRequestTypes.Leave, new[] { leaveRequestId });
+        var approval = approvals.GetValueOrDefault(leaveRequestId)
+            ?? throw new BadRequestException("Pengajuan cuti ini tidak punya proses approval.");
 
-        if (approval.ApproverId != approverEmployeeId)
-            throw new ForbiddenException("Anda bukan approver untuk level yang sedang aktif pada leave request ini.");
+        // Status LeaveRequest ikut berubah lewat LeaveApprovalHandler di transaction yang sama.
+        await _approvalService.CancelAsync(approval.Id, actor);
 
-        return (leaveRequest, approval);
+        var updated = await _leaveRepository.GetByIdAsync(leaveRequestId);
+        return await ToDtoAsync(updated!, actor);
     }
 
-    private static LeaveRequestResponseDto ToDto(LeaveRequest l) => new()
+    // Hari kerja = Senin-Jumat. Libur nasional baru bisa dikurangi setelah REF_Public_Holiday ada (Batch D).
+    private static int CountWorkingDays(DateOnly start, DateOnly end)
+    {
+        var count = 0;
+        for (var d = start; d <= end; d = d.AddDays(1))
+        {
+            if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+                count++;
+        }
+        return count;
+    }
+
+    private async Task<LeaveRequestResponseDto> ToDtoAsync(LeaveRequest l, UserContext? actor)
+    {
+        var approvals = await _approvalService.GetByRefsAsync(ApprovalRequestTypes.Leave, new[] { l.Id }, actor);
+        return ToDto(l, approvals.GetValueOrDefault(l.Id));
+    }
+
+    private static LeaveRequestResponseDto ToDto(LeaveRequest l, DTOs.Approval.ApprovalRequestResponseDto? approval) => new()
     {
         Id = l.Id,
         EmployeeId = l.EmployeeId,
         EmployeeName = l.Employee?.FullName ?? string.Empty,
         StartDate = l.StartDate,
         EndDate = l.EndDate,
+        Days = l.Days,
         Reason = l.Reason,
         Status = l.Status.ToString(),
-        CurrentLevel = l.CurrentLevel,
         CreatedAt = l.CreatedAt,
-        Approvals = l.Approvals
-            .OrderBy(a => a.Level)
-            .Select(a => new LeaveApprovalResponseDto
-            {
-                Id = a.Id,
-                Level = a.Level,
-                Status = a.Status.ToString(),
-                ApproverId = a.ApproverId,
-                ApproverName = a.Approver?.FullName ?? string.Empty,
-                Note = a.Note,
-                ActedAt = a.ActedAt
-            }).ToList()
+        ApprovalId = approval?.Id,
+        CurrentLevel = approval?.CurrentLevel ?? 0,
+        Approvals = approval?.Steps ?? new()
     };
 }

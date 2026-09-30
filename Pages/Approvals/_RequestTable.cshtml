@@ -1,0 +1,75 @@
+@model HRIS.Api.Pages.Approvals.ApprovalTableViewModel
+
+<table class="table table-hover align-middle mb-0">
+    <thead>
+        <tr>
+            <th>Jenis</th>
+            <th>Pengaju</th>
+            <th>Ringkasan</th>
+            <th>Status</th>
+            <th>Langkah</th>
+            <th class="text-end">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model.Items)
+        {
+            <tr>
+                <td>@r.RequestTypeLabel</td>
+                <td>@r.RequesterName</td>
+                <td>@(r.Summary ?? "-")</td>
+                <td><span class="status-@r.Status">@r.Status</span></td>
+                <td>
+                    <details>
+                        <summary class="small">Level @r.CurrentLevel dari @r.Steps.Count</summary>
+                        <ul class="list-unstyled small mb-0 mt-1">
+                            @foreach (var s in r.Steps)
+                            {
+                                <li>
+                                    @s.Level. @s.ApproverName
+                                    <span class="status-@s.Status">@s.Status</span>
+                                    @if (s.IsSupportOverride)
+                                    {
+                                        <span class="badge bg-dark">oleh Support</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(s.Note))
+                                    {
+                                        <div class="text-muted">"@s.Note"</div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                </td>
+                <td class="text-end">
+                    @if (Model.ShowActions && r.CanAct)
+                    {
+                        <details class="d-inline-block text-start">
+                            <summary class="btn btn-sm btn-outline-secondary">Tindak Lanjuti</summary>
+                            <div class="border rounded p-2 mt-2" style="min-width: 260px;">
+                                <form method="post" asp-page-handler="Approve" asp-route-id="@r.Id" class="mb-2">
+                                    <textarea name="note" class="form-control form-control-sm mb-1" placeholder="Catatan (opsional)"></textarea>
+                                    <button type="submit" class="btn btn-success btn-sm w-100">Setujui</button>
+                                </form>
+                                <form method="post" asp-page-handler="Reject" asp-route-id="@r.Id">
+                                    <textarea name="note" class="form-control form-control-sm mb-1" placeholder="Alasan penolakan (wajib)" required></textarea>
+                                    <button type="submit" class="btn btn-danger btn-sm w-100">Tolak</button>
+                                </form>
+                            </div>
+                        </details>
+                    }
+                    @if (Model.ShowCancel && r.Status == "Pending")
+                    {
+                        <form method="post" asp-page-handler="Cancel" asp-route-id="@r.Id" onsubmit="return confirm('Batalkan pengajuan ini?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Batalkan</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Items.Any())
+        {
+            <tr><td colspan="6" class="text-center text-muted py-3">@Model.EmptyText</td></tr>
+        }
+    </tbody>
+</table>

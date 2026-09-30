@@ -1,0 +1,23 @@
+@page
+@model HRIS.Api.Pages.Approvals.IndexModel
+@{
+    ViewData["Title"] = "Approval";
+}
+
+<h4 class="mb-3">Menunggu Persetujuan Kamu</h4>
+<div class="card p-3 mb-4">
+    <partial name="_RequestTable" model="Model.InboxTable" />
+</div>
+
+<h4 class="mb-3">Pengajuan Saya</h4>
+<div class="card p-3 mb-4">
+    <partial name="_RequestTable" model="Model.MyTable" />
+</div>
+
+@if (Model.IsHrOrSupport)
+{
+    <h4 class="mb-3">Semua Pengajuan yang Sedang Berjalan</h4>
+    <div class="card p-3">
+        <partial name="_RequestTable" model="Model.AllTable" />
+    </div>
+}

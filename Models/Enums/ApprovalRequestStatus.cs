@@ -1,8 +1,9 @@
 namespace HRIS.Api.Models.Enums;
 
-public enum ApprovalStatus
+public enum ApprovalRequestStatus
 {
     Pending,
     Approved,
-    Rejected
+    Rejected,
+    Cancelled
 }

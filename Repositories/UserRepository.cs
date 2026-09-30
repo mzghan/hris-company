@@ -1,3 +1,4 @@
+using HRIS.Api.Common;
 using HRIS.Api.Data;
 using HRIS.Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -44,5 +45,41 @@ public class UserRepository : IUserRepository
     {
         var names = roleNames.ToList();
         return await _context.Roles.Where(r => names.Contains(r.RoleName)).ToListAsync();
+    }
+
+    public async Task<int?> GetUserIdByEmployeeIdAsync(int employeeId) =>
+        await _context.Users
+            .Where(u => u.EmployeeId == employeeId && u.IsActive)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
+
+    public async Task<List<int>> GetUserIdsByRoleIdAsync(int roleId) =>
+        await _context.UserRoles
+            .Where(ur => ur.RoleId == roleId && ur.User!.IsActive)
+            .Select(ur => ur.UserId)
+            .ToListAsync();
+
+    public async Task<List<UserContact>> GetContactsAsync(IEnumerable<int> userIds)
+    {
+        var ids = userIds.ToList();
+        var users = await _context.Users
+            .AsNoTracking()
+            .Include(u => u.Employee)
+            .Where(u => ids.Contains(u.Id) && u.IsActive)
+            .ToListAsync();
+
+        var employeeIds = users.Where(u => u.EmployeeId != null).Select(u => u.EmployeeId!.Value).ToList();
+        var emails = await _context.EmployeeContacts
+            .AsNoTracking()
+            .Where(c => employeeIds.Contains(c.EmployeeId) && c.ContactType!.ContactTypeName == RefNames.WorkEmail)
+            .Select(c => new { c.EmployeeId, c.ContactValue })
+            .ToListAsync();
+
+        return users
+            .Select(u => new UserContact(
+                u.Id,
+                u.Employee?.FullName ?? u.Username,
+                u.EmployeeId is null ? null : emails.FirstOrDefault(e => e.EmployeeId == u.EmployeeId)?.ContactValue))
+            .ToList();
     }
 }

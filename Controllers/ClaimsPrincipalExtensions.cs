@@ -32,6 +32,14 @@ public static class ClaimsPrincipalExtensions
         return userId;
     }
 
+    // Konteks user (Id user, Id employee kalau ada, dan role) untuk dipakai Service.
+    public static UserContext ToUserContext(this ClaimsPrincipal user)
+    {
+        int? employeeId = int.TryParse(user.FindFirst("employeeId")?.Value, out var id) ? id : null;
+        var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+        return new UserContext(user.GetUserId(), employeeId, roles);
+    }
+
     public static bool IsHrOrSupport(this ClaimsPrincipal user) =>
         user.IsInRole(RoleNames.HR) || user.IsInRole(RoleNames.Support);
 

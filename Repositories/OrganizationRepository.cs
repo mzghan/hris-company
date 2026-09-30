@@ -49,13 +49,11 @@ public class OrganizationRepository : IOrganizationRepository
 
     public async Task UpdateAsync(Organization organization)
     {
-        _context.Organizations.Update(organization);
         await _context.SaveChangesAsync();
     }
 
     public async Task UpdateRangeAsync(IEnumerable<Organization> organizations)
     {
-        _context.Organizations.UpdateRange(organizations);
         await _context.SaveChangesAsync();
     }
 

@@ -4,6 +4,7 @@ using HRIS.Api.Data;
 using HRIS.Api.Middlewares;
 using HRIS.Api.Repositories;
 using HRIS.Api.Services;
+using HRIS.Api.Services.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -30,6 +31,12 @@ builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
 builder.Services.AddScoped<IKpiCriteriaRepository, KpiCriteriaRepository>();
 builder.Services.AddScoped<IKpiPeriodRepository, KpiPeriodRepository>();
 builder.Services.AddScoped<IEmployeeKpiScoreRepository, EmployeeKpiScoreRepository>();
+builder.Services.AddScoped<IApprovalRepository, ApprovalRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IEmailOutboxRepository, EmailOutboxRepository>();
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<ITransactionRunner, TransactionRunner>();
 
 // --- Services ---
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
@@ -40,6 +47,30 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
+
+// --- Batch A: approval engine, notifikasi, dokumen, audit log ---
+// Tiap modul yang memakai approval engine mendaftarkan satu IApprovalHandler untuk request_type-nya.
+builder.Services.AddScoped<IApprovalHandler, LeaveApprovalHandler>();
+builder.Services.AddScoped<IApprovalService, ApprovalService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+// --- Konfigurasi email & dokumen ---
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<DocumentOptions>(builder.Configuration.GetSection("Documents"));
+
+// Email:Mode = Smtp -> kirim sungguhan; selain itu (Log/Off) -> hanya tulis ke log.
+if (string.Equals(builder.Configuration["Email:Mode"], "Smtp", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+else
+    builder.Services.AddScoped<IEmailSender, LogEmailSender>();
+
+// --- Background job (satu hosted service menjalankan semua IRecurringJob) ---
+// Batch berikutnya cukup menambah baris AddSingleton<IRecurringJob, ...> di sini.
+builder.Services.AddSingleton<IRecurringJob, EmailDispatchJob>();
+builder.Services.AddHostedService<RecurringJobHostedService>();
 
 // --- Controllers (API) + Razor Pages (frontend interaktif) ---
 builder.Services.AddControllers();

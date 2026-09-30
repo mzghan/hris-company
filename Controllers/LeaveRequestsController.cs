@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRIS.Api.Controllers;
 
+// Persetujuan cuti (approve/reject) ada di ApprovalsController: /api/approvals/{id}/approve|reject.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -33,29 +34,8 @@ public class LeaveRequestsController : ControllerBase
         return Ok(await _service.GetMyRequestsAsync(employeeId));
     }
 
-    // Daftar leave request yang sedang menunggu approval dari user yang login
-    // (dicocokkan lewat LeaveApproval.ApproverId, hanya relevan untuk Manager/Admin).
-    [HttpGet("pending-approval")]
-    [Authorize(Policy = "ManagerOrHR")]
-    public async Task<ActionResult<List<LeaveRequestResponseDto>>> GetPendingForApproval()
-    {
-        var employeeId = User.GetEmployeeId();
-        return Ok(await _service.GetPendingForApproverAsync(employeeId));
-    }
-
-    [HttpPost("{id:int}/approve")]
-    [Authorize(Policy = "ManagerOrHR")]
-    public async Task<ActionResult<LeaveRequestResponseDto>> Approve(int id, LeaveApprovalActionDto dto)
-    {
-        var approverId = User.GetEmployeeId();
-        return Ok(await _service.ApproveAsync(id, approverId, dto));
-    }
-
-    [HttpPost("{id:int}/reject")]
-    [Authorize(Policy = "ManagerOrHR")]
-    public async Task<ActionResult<LeaveRequestResponseDto>> Reject(int id, LeaveApprovalActionDto dto)
-    {
-        var approverId = User.GetEmployeeId();
-        return Ok(await _service.RejectAsync(id, approverId, dto));
-    }
+    // Pengaju membatalkan cuti yang masih Pending.
+    [HttpPost("{id:int}/cancel")]
+    public async Task<ActionResult<LeaveRequestResponseDto>> Cancel(int id) =>
+        Ok(await _service.CancelAsync(id, User.ToUserContext()));
 }

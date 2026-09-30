@@ -43,6 +43,8 @@ public class AppDbContext : DbContext
     public DbSet<EducationTitle> EducationTitles => Set<EducationTitle>();
     public DbSet<University> Universities => Set<University>();
     public DbSet<Industry> Industries => Set<Industry>();
+    public DbSet<ApprovalFlowStep> ApprovalFlowSteps => Set<ApprovalFlowStep>();
+    public DbSet<DocumentCategory> DocumentCategories => Set<DocumentCategory>();
 
     // --- MST_* ---
     public DbSet<Employee> Employees => Set<Employee>();
@@ -60,15 +62,22 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     // --- TRX_* (dibawa dari versi sebelumnya; dirombak per batch) ---
     public DbSet<Attendance> Attendances => Set<Attendance>();
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
-    public DbSet<LeaveApproval> LeaveApprovals => Set<LeaveApproval>();
     public DbSet<KpiCriteria> KpiCriteria => Set<KpiCriteria>();
     public DbSet<KpiPeriod> KpiPeriods => Set<KpiPeriod>();
     public DbSet<EmployeeKpiScore> EmployeeKpiScores => Set<EmployeeKpiScore>();
     public DbSet<KpiScoreRevision> KpiScoreRevisions => Set<KpiScoreRevision>();
+
+    // --- TRX_* Batch A (fondasi) ---
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
+    public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<EmailOutbox> EmailOutbox => Set<EmailOutbox>();
+    public DbSet<Document> Documents => Set<Document>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +113,8 @@ public class AppDbContext : DbContext
         MapTable<EducationTitle>(modelBuilder, "REF_Education_Title", "title_id");
         MapTable<University>(modelBuilder, "REF_University", "university_id");
         MapTable<Industry>(modelBuilder, "REF_Industry", "industry_id");
+        MapTable<ApprovalFlowStep>(modelBuilder, "REF_Approval_Flow_Step", "flow_step_id");
+        MapTable<DocumentCategory>(modelBuilder, "REF_Document_Category", "category_id");
 
         modelBuilder.Entity<JobTitle>().Property(j => j.JobTitleName).HasColumnName("job_title");
 
@@ -122,21 +133,32 @@ public class AppDbContext : DbContext
         // --- SYS_* ---
         MapTable<User>(modelBuilder, "SYS_User", "user_id");
         MapTable<Role>(modelBuilder, "SYS_Role", "role_id");
+        MapTable<AuditLog>(modelBuilder, "SYS_Audit_Log", "log_id");
         modelBuilder.Entity<UserRole>().ToTable("SYS_User_Role");
         modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.UserId, ur.RoleId });
 
         // --- TRX_* (lama) ---
         MapTable<Attendance>(modelBuilder, "TRX_Attendance", "attendance_id");
         MapTable<LeaveRequest>(modelBuilder, "TRX_Leave_Request", "leave_id");
-        MapTable<LeaveApproval>(modelBuilder, "TRX_Leave_Approval", "leave_approval_id");
         MapTable<KpiCriteria>(modelBuilder, "TRX_Kpi_Criteria", "criteria_id");
         MapTable<KpiPeriod>(modelBuilder, "TRX_Kpi_Period", "kpi_period_id");
         MapTable<EmployeeKpiScore>(modelBuilder, "TRX_Employee_Kpi_Score", "score_id");
         MapTable<KpiScoreRevision>(modelBuilder, "TRX_Kpi_Score_Revision", "revision_id");
 
+        // --- TRX_* Batch A ---
+        MapTable<ApprovalRequest>(modelBuilder, "TRX_Approval_Request", "approval_id");
+        MapTable<ApprovalStep>(modelBuilder, "TRX_Approval_Step", "step_id");
+        MapTable<Notification>(modelBuilder, "TRX_Notification", "notification_id");
+        MapTable<EmailOutbox>(modelBuilder, "TRX_Email_Outbox", "email_id");
+        MapTable<Document>(modelBuilder, "TRX_Document", "document_id");
+
         // --- Enum disimpan sebagai string di SQLite, biar gampang dibaca manual saat debug ---
         modelBuilder.Entity<LeaveRequest>().Property(l => l.Status).HasConversion<string>();
-        modelBuilder.Entity<LeaveApproval>().Property(a => a.Status).HasConversion<string>();
+        modelBuilder.Entity<ApprovalRequest>().Property(r => r.Status).HasConversion<string>();
+        modelBuilder.Entity<ApprovalStep>().Property(x => x.Status).HasConversion<string>();
+        modelBuilder.Entity<ApprovalStep>().Property(x => x.ApproverType).HasConversion<string>();
+        modelBuilder.Entity<ApprovalFlowStep>().Property(x => x.ApproverType).HasConversion<string>();
+        modelBuilder.Entity<EmailOutbox>().Property(e => e.Status).HasConversion<string>();
         modelBuilder.Entity<KpiPeriod>().Property(p => p.Status).HasConversion<string>();
 
         // --- Unique constraints ---
@@ -147,6 +169,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>().HasIndex(u => u.EmployeeId).IsUnique();
         modelBuilder.Entity<Role>().HasIndex(r => r.RoleName).IsUnique();
         modelBuilder.Entity<Country>().HasIndex(c => c.CountryCode).IsUnique();
+
+        // Satu pengajuan modul = satu approval request.
+        modelBuilder.Entity<ApprovalRequest>().HasIndex(r => new { r.RequestType, r.RequestRefId }).IsUnique();
+        modelBuilder.Entity<ApprovalStep>().HasIndex(x => new { x.ApprovalId, x.Level }).IsUnique();
+        modelBuilder.Entity<ApprovalFlowStep>().HasIndex(x => new { x.RequestType, x.Level }).IsUnique();
+        modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
+        modelBuilder.Entity<EmailOutbox>().HasIndex(e => new { e.Status, e.NextAttemptAt });
 
         modelBuilder.Entity<KpiPeriod>().HasIndex(p => new { p.Name, p.Year }).IsUnique();
 
@@ -279,17 +308,52 @@ public class AppDbContext : DbContext
             .HasOne(a => a.Employee).WithMany().HasForeignKey(a => a.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // LeaveApproval -> Employee (Approver) Restrict; satu-satunya jalur cascade
-        // ke Employee untuk leave lewat LeaveRequest. Tabel ini diganti approval engine di Batch A.
-        modelBuilder.Entity<LeaveApproval>()
-            .HasOne(a => a.Approver).WithMany().HasForeignKey(a => a.ApproverId)
-            .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<LeaveRequest>()
             .HasOne(l => l.Employee).WithMany().HasForeignKey(l => l.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<LeaveApproval>()
-            .HasOne(a => a.LeaveRequest).WithMany(l => l.Approvals).HasForeignKey(a => a.LeaveRequestId)
+
+        // --- Approval engine ---
+        modelBuilder.Entity<ApprovalRequest>()
+            .HasOne(r => r.Requester).WithMany().HasForeignKey(r => r.RequesterId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApprovalStep>()
+            .HasOne(x => x.Approval).WithMany(r => r.Steps).HasForeignKey(x => x.ApprovalId)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ApprovalStep>()
+            .HasOne(x => x.ApproverRole).WithMany().HasForeignKey(x => x.ApproverRoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApprovalStep>()
+            .HasOne(x => x.ApproverEmployee).WithMany().HasForeignKey(x => x.ApproverEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApprovalStep>()
+            .HasOne(x => x.ActedByUser).WithMany().HasForeignKey(x => x.ActedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApprovalFlowStep>()
+            .HasOne(f => f.Role).WithMany().HasForeignKey(f => f.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApprovalFlowStep>()
+            .HasOne(f => f.ApproverEmployee).WithMany().HasForeignKey(f => f.ApproverEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // --- Notification, Document, Audit log ---
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User).WithMany().HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<DocumentCategory>()
+            .HasOne(c => c.Parent).WithMany(c => c.Children).HasForeignKey(c => c.ParentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.Category).WithMany().HasForeignKey(d => d.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.OwnerEmployee).WithMany().HasForeignKey(d => d.OwnerEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.UploadedByUser).WithMany().HasForeignKey(d => d.UploadedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<AuditLog>()
+            .HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // --- KPI ---
         modelBuilder.Entity<EmployeeKpiScore>()

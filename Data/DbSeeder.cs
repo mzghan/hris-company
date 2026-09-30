@@ -6,6 +6,7 @@ using HRIS.Api.DTOs.Kpi;
 using HRIS.Api.DTOs.Leave;
 using HRIS.Api.DTOs.Organization;
 using HRIS.Api.Models;
+using HRIS.Api.Models.Enums;
 using HRIS.Api.Repositories;
 using HRIS.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -222,6 +223,68 @@ public static class DbSeeder
                 new City { CityName = "Jakarta Pusat", ProvinceId = jakarta.Id });
             await db.SaveChangesAsync();
         }
+
+        await SeedDocumentCategoriesAsync(db);
+        await SeedApprovalFlowAsync(db);
+    }
+
+    // Kategori awal dokumen (modul 1 Learning, 15 HR Forms, 16 Regulation, dokumen pribadi).
+    private static async Task SeedDocumentCategoriesAsync(AppDbContext db)
+    {
+        if (await db.DocumentCategories.AnyAsync()) return;
+
+        var forms = new DocumentCategory { Name = "Forms" };
+        db.DocumentCategories.AddRange(
+            forms,
+            new DocumentCategory { Name = "Learning" },
+            new DocumentCategory { Name = "Regulations" },
+            new DocumentCategory { Name = "Personal Documents" });
+        await db.SaveChangesAsync();
+
+        db.DocumentCategories.AddRange(
+            new DocumentCategory { Name = "Medical", ParentId = forms.Id },
+            new DocumentCategory { Name = "General", ParentId = forms.Id });
+        await db.SaveChangesAsync();
+    }
+
+    // Alur approval awal (bab 4.2 dokumen desain). Semua bisa diubah HR lewat
+    // PUT /api/approvals/flows/{id} tanpa deploy. PersonalAction sengaja belum diseed:
+    // alurnya (manager lama -> manager baru -> HR) dikerjakan di Batch E.
+    private static async Task SeedApprovalFlowAsync(AppDbContext db)
+    {
+        if (await db.ApprovalFlowSteps.AnyAsync()) return;
+
+        var hrRoleId = (await db.Roles.FirstAsync(r => r.RoleName == RoleNames.HR)).Id;
+
+        ApprovalFlowStep Chain(string type, int level, int depth, int? minDays = null) => new()
+        {
+            RequestType = type, Level = level, ApproverType = ApproverType.ManagerChain,
+            ChainDepth = depth, MinRequestedDays = minDays
+        };
+        ApprovalFlowStep HrRole(string type, int level) => new()
+        {
+            RequestType = type, Level = level, ApproverType = ApproverType.Role, RoleId = hrRoleId
+        };
+
+        db.ApprovalFlowSteps.AddRange(
+            // Leave: atasan langsung; cuti panjang (>= 6 hari kerja, angka perkiraan) ditambah Head.
+            Chain(ApprovalRequestTypes.Leave, 1, 1),
+            Chain(ApprovalRequestTypes.Leave, 2, 2, minDays: 6),
+
+            // Manpower: atasan -> Head -> HR.
+            Chain(ApprovalRequestTypes.Manpower, 1, 1),
+            Chain(ApprovalRequestTypes.Manpower, 2, 2),
+            HrRole(ApprovalRequestTypes.Manpower, 3),
+
+            // Benefit, Letter, Parking: HR. Laptop: HR, lalu status lanjutan oleh Support (Batch C).
+            HrRole(ApprovalRequestTypes.FamilyChange, 1),
+            HrRole(ApprovalRequestTypes.LeaveEncashment, 1),
+            HrRole(ApprovalRequestTypes.HealthClaim, 1),
+            HrRole(ApprovalRequestTypes.Letter, 1),
+            HrRole(ApprovalRequestTypes.Parking, 1),
+            HrRole(ApprovalRequestTypes.Laptop, 1));
+
+        await db.SaveChangesAsync();
     }
 
     // ================= Data dummy perusahaan =================
@@ -235,6 +298,7 @@ public static class DbSeeder
         var authService = services.GetRequiredService<IAuthService>();
         var attendanceService = services.GetRequiredService<IAttendanceService>();
         var leaveService = services.GetRequiredService<ILeaveRequestService>();
+        var approvalService = services.GetRequiredService<IApprovalService>();
         var kpiService = services.GetRequiredService<IKpiService>();
 
         // --- Organisasi bertingkat ---
@@ -295,7 +359,7 @@ public static class DbSeeder
                 EmployeeId = employeeId
             }, actorIsSupport: true);
 
-        await CreateUserAsync("budi", budi.Id);
+        var budiUser = await CreateUserAsync("budi", budi.Id);
         var sitiUser = await CreateUserAsync("siti", siti.Id);
         await CreateUserAsync("andi", andi.Id);
         await CreateUserAsync("dewi", dewi.Id);
@@ -320,24 +384,32 @@ public static class DbSeeder
             });
         }
 
-        // --- Leave request contoh: satu Pending (Dewi, level 1 pending di Siti),
-        // satu sampai selesai Approved (Rudi, disetujui Siti lalu Budi). Rantai approver
-        // sekarang dibaca dari Direct Manager di MST_Employee_Hierarchy. ---
+        // --- Leave request contoh, lewat approval engine. Tanggal dihitung dari hari Senin
+        // supaya jumlah hari kerjanya pasti (tidak bergantung hari saat seeder jalan). ---
+        // 1) Dewi: 3 hari kerja, Pending di langkah 1 (Siti).
+        // 2) Rudi: 10 hari kerja (>= 6) sehingga butuh 2 langkah: Siti lalu Budi (Head). Sudah Approved.
+        var today = JakartaTime.Today();
+        var nextMonday = MondayOnOrBefore(today.AddDays(14));
         await leaveService.CreateAsync(dewi.Id, new LeaveRequestCreateDto
         {
-            StartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            EndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(9)),
+            StartDate = nextMonday,
+            EndDate = nextMonday.AddDays(2),
             Reason = "Acara keluarga"
         });
 
+        var pastMonday = MondayOnOrBefore(today.AddDays(-28));
         var rudiLeave = await leaveService.CreateAsync(rudi.Id, new LeaveRequestCreateDto
         {
-            StartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-10)),
-            EndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-8)),
+            StartDate = pastMonday,
+            EndDate = pastMonday.AddDays(11),
             Reason = "Cuti tahunan"
         });
-        await leaveService.ApproveAsync(rudiLeave.Id, siti.Id, new LeaveApprovalActionDto { Note = "Disetujui, jadwal tim aman." });
-        await leaveService.ApproveAsync(rudiLeave.Id, budi.Id, new LeaveApprovalActionDto { Note = "OK." });
+
+        var employeeRoles = new[] { RoleNames.Employee };
+        await approvalService.ApproveAsync(rudiLeave.ApprovalId!.Value,
+            new UserContext(sitiUser.UserId, siti.Id, employeeRoles), "Disetujui, jadwal tim aman.");
+        await approvalService.ApproveAsync(rudiLeave.ApprovalId!.Value,
+            new UserContext(budiUser.UserId, budi.Id, employeeRoles), "OK.");
 
         // --- KPI: kriteria + satu periode terisi + satu contoh override Manager ---
         await kpiService.CreateCriteriaAsync(new KpiCriteriaCreateDto { Name = "Kedisiplinan", Weight = 30 });
@@ -375,5 +447,12 @@ public static class DbSeeder
 
         logger.LogInformation(
             "Data dummy perusahaan berhasil di-seed: 4 organisasi, 7 employee, 1 kpi period.");
+    }
+
+    // Senin terdekat pada atau sebelum tanggal ini.
+    private static DateOnly MondayOnOrBefore(DateOnly date)
+    {
+        var offset = ((int)date.DayOfWeek + 6) % 7; // Senin = 0
+        return date.AddDays(-offset);
     }
 }
