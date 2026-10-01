@@ -34,6 +34,7 @@ public static class ApprovalRequestTypes
         Leave => "/Leave/Index",
         LeaveEncashment => "/FlexibleBenefits/Index",
         HealthClaim => "/FlexibleBenefits/Index",
+        PersonalAction => "/PersonalActions/Index",
         Manpower => "/Manpower/Index",
         _ => "/Approvals/Index"
     };

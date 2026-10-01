@@ -50,6 +50,8 @@ public class AppDbContext : DbContext
     public DbSet<PublicHoliday> PublicHolidays => Set<PublicHoliday>();
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<MeetingRoom> MeetingRooms => Set<MeetingRoom>();
+    public DbSet<EvaluationType> EvaluationTypes => Set<EvaluationType>();
+    public DbSet<Competency> Competencies => Set<Competency>();
 
     // --- MST_* ---
     public DbSet<Employee> Employees => Set<Employee>();
@@ -102,6 +104,15 @@ public class AppDbContext : DbContext
     public DbSet<HealthClaim> HealthClaims => Set<HealthClaim>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<ManpowerRequest> ManpowerRequests => Set<ManpowerRequest>();
+    public DbSet<EmployeeEvaluation> EmployeeEvaluations => Set<EmployeeEvaluation>();
+    public DbSet<EvaluationEntry> EvaluationEntries => Set<EvaluationEntry>();
+    public DbSet<EvaluationScore> EvaluationScores => Set<EvaluationScore>();
+    public DbSet<PerformancePlan> PerformancePlans => Set<PerformancePlan>();
+    public DbSet<PlanTask> PlanTasks => Set<PlanTask>();
+    public DbSet<PlanWorkLog> PlanWorkLogs => Set<PlanWorkLog>();
+    public DbSet<EmployeeCompetency> EmployeeCompetencies => Set<EmployeeCompetency>();
+    public DbSet<CompetencyAssessment> CompetencyAssessments => Set<CompetencyAssessment>();
+    public DbSet<PersonalAction> PersonalActions => Set<PersonalAction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -144,6 +155,8 @@ public class AppDbContext : DbContext
         MapTable<PublicHoliday>(modelBuilder, "REF_Public_Holiday", "holiday_id");
         MapTable<LeaveType>(modelBuilder, "REF_Leave_Type", "leave_type_id");
         MapTable<MeetingRoom>(modelBuilder, "REF_Meeting_Room", "room_id");
+        MapTable<EvaluationType>(modelBuilder, "REF_Evaluation_Type", "eval_type_id");
+        MapTable<Competency>(modelBuilder, "REF_Competency", "competency_id");
 
         modelBuilder.Entity<JobTitle>().Property(j => j.JobTitleName).HasColumnName("job_title");
 
@@ -199,6 +212,15 @@ public class AppDbContext : DbContext
         MapTable<HealthClaim>(modelBuilder, "TRX_Health_Claim", "claim_id");
         MapTable<RoomBooking>(modelBuilder, "TRX_Room_Booking", "booking_id");
         MapTable<ManpowerRequest>(modelBuilder, "TRX_Manpower_Request", "manpower_id");
+        MapTable<EmployeeEvaluation>(modelBuilder, "TRX_Employee_Evaluation", "evaluation_id");
+        MapTable<EvaluationEntry>(modelBuilder, "TRX_Evaluation_Entry", "entry_id");
+        MapTable<EvaluationScore>(modelBuilder, "TRX_Evaluation_Score", "score_id");
+        MapTable<PerformancePlan>(modelBuilder, "TRX_Performance_Plan", "plan_id");
+        MapTable<PlanTask>(modelBuilder, "TRX_Plan_Task", "task_id");
+        MapTable<PlanWorkLog>(modelBuilder, "TRX_Plan_WorkLog", "log_id");
+        MapTable<EmployeeCompetency>(modelBuilder, "TRX_Employee_Competency", "id");
+        MapTable<CompetencyAssessment>(modelBuilder, "TRX_Competency_Assessment", "assessment_id");
+        MapTable<PersonalAction>(modelBuilder, "TRX_Personal_Action", "paf_id");
         modelBuilder.Entity<RoomBooking>().Property(x => x.BookedByEmployeeId).HasColumnName("booked_by");
         modelBuilder.Entity<ManpowerRequest>().Property(x => x.RequestedByEmployeeId).HasColumnName("requested_by");
 

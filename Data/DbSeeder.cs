@@ -252,6 +252,7 @@ public static class DbSeeder
         await SeedBatchBContentAsync(db);
         await SeedBatchCContentAsync(db);
         await SeedBatchDContentAsync(db);
+        await SeedBatchEContentAsync(db);
     }
 
     // Kategori awal dokumen (modul 1 Learning, 15 HR Forms, 16 Regulation, dokumen pribadi).
@@ -390,6 +391,42 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
     }
+
+    private static async Task SeedBatchEContentAsync(AppDbContext db)
+    {
+        if (!await db.EvaluationTypes.AnyAsync())
+            db.EvaluationTypes.AddRange(
+                new EvaluationType { Name = "Probation 1 Month", MonthOffset = 1 },
+                new EvaluationType { Name = "Probation 3 Month", MonthOffset = 3 },
+                new EvaluationType { Name = "Probation 5 Month", MonthOffset = 5 },
+                new EvaluationType { Name = "Contract Based", MonthOffset = null });
+
+        if (!await db.Competencies.AnyAsync())
+            db.Competencies.AddRange(
+                new Competency { Name = "Communication", Description = "Kemampuan menyampaikan informasi dengan jelas dan efektif." },
+                new Competency { Name = "Teamwork", Description = "Kemampuan bekerja sama dan berkontribusi dalam tim." },
+                new Competency { Name = "Problem Solving", Description = "Kemampuan menganalisis masalah dan menentukan solusi." },
+                new Competency { Name = "Ownership", Description = "Tanggung jawab terhadap hasil pekerjaan dan tindak lanjut." },
+                new Competency { Name = "Adaptability", Description = "Kemampuan beradaptasi terhadap perubahan dan kebutuhan pekerjaan." });
+
+        // PAF: HR menjadi langkah terakhir. Manager lama dan manager baru di-snapshot
+        // dinamis oleh ApprovalService karena keduanya bergantung pada isi pengajuan.
+        if (!await db.ApprovalFlowSteps.AnyAsync(x => x.RequestType == ApprovalRequestTypes.PersonalAction))
+        {
+            var hrRoleId = (await db.Roles.FirstAsync(r => r.RoleName == RoleNames.HR)).Id;
+            db.ApprovalFlowSteps.Add(new ApprovalFlowStep
+            {
+                RequestType = ApprovalRequestTypes.PersonalAction,
+                Level = 1,
+                ApproverType = ApproverType.Role,
+                RoleId = hrRoleId,
+                IsActive = true
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+
 
     // ================= Data dummy perusahaan =================
 

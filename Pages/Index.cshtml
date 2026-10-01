@@ -74,6 +74,13 @@
 <div class="row g-3 mt-1">
     @if (Model.HasEmployeeProfile)
     {
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Employee Evaluation</div><div class="fw-semibold">Evaluasi probation & contract</div><a asp-page="/Evaluations/Index" class="small">Buka evaluasi &rarr;</a></div></div>
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Performance</div><div class="fw-semibold">Plan, task & work log</div><a asp-page="/Performance/Index" class="small">Buka performance &rarr;</a></div></div>
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Competency</div><div class="fw-semibold">Target & self-assessment</div><a asp-page="/Competencies/Index" class="small">Buka competency &rarr;</a></div></div>
+        <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Personal Action</div><div class="fw-semibold">PAF perubahan data pekerjaan</div><a asp-page="/PersonalActions/Index" class="small">Buka PAF &rarr;</a></div></div>
+    }
+    @if (Model.HasEmployeeProfile)
+    {
         <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Flexible Benefit</div><div class="fw-semibold">Saldo &amp; klaim</div><a asp-page="/FlexibleBenefits/Index" class="small">Buka Flexible Benefit &rarr;</a></div></div>
         <div class="col-md-4"><div class="card p-3 h-100"><div class="text-muted small">Meeting</div><div class="fw-semibold">Booking meeting room</div><a asp-page="/Booking/Index" class="small">Lihat jadwal &rarr;</a></div></div>
     }

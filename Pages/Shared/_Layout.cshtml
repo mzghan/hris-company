@@ -90,9 +90,13 @@
             <a class="sidebar-link" asp-page="/Expatriate/Index"><span class="sidebar-icon">X</span>Expatriate</a>
             <a class="sidebar-link" asp-page="/YES/Index"><span class="sidebar-icon">Y</span>YES</a>
 
+            <div class="sidebar-section">Performance</div>
+            <a class="sidebar-link" asp-page="/Evaluations/Index"><span class="sidebar-icon">E</span>Employee Evaluation</a>
+            <a class="sidebar-link" asp-page="/Performance/Index"><span class="sidebar-icon">P</span>Performance Plan</a>
+            <a class="sidebar-link" asp-page="/Competencies/Index"><span class="sidebar-icon">C</span>Competency</a>
+            <a class="sidebar-link" asp-page="/PersonalActions/Index"><span class="sidebar-icon">PA</span>Personal Action</a>
             @if (isHrOrSupport)
             {
-                <div class="sidebar-section">Performance</div>
                 <a class="sidebar-link" asp-page="/Kpi/Criteria"><span class="sidebar-icon">K</span>Kriteria KPI</a>
                 <a class="sidebar-link" asp-page="/Kpi/Periods"><span class="sidebar-icon">K</span>Periode KPI</a>
             }

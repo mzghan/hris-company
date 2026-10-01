@@ -21,6 +21,10 @@ table.table {
 .status-Finalized { color: #157347; font-weight: 600; }
 .status-Cancelled { color: #6c757d; font-weight: 600; }
 .status-Skipped { color: #adb5bd; font-weight: 600; }
+.status-Overdue { color: #b02a37; font-weight: 600; }
+.status-Open { color: #6c757d; font-weight: 600; }
+.status-InProgress { color: #b8860b; font-weight: 600; }
+.status-Done { color: #157347; font-weight: 600; }
 
 .regulation-content {
     white-space: pre-wrap;

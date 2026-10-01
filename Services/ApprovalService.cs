@@ -136,6 +136,64 @@ public class ApprovalService : IApprovalService
         });
     }
 
+    // PAF memakai approver dinamis: manager lama -> manager baru -> HR.
+    // Manager baru tidak bisa disimpan sebagai REF_Approval_Flow_Step karena nilainya
+    // bergantung pada isi pengajuan, sehingga tetap di-snapshot saat submit.
+    public async Task<ApprovalRequestResponseDto> SubmitPersonalActionAsync(
+        int requestRefId, int requesterEmployeeId, int? oldManagerId, int? newManagerId, string summary)
+    {
+        return await _transaction.RunAsync(async () =>
+        {
+            if (await _repository.GetByRefAsync(ApprovalRequestTypes.PersonalAction, requestRefId) is not null)
+                throw new BadRequestException("PAF ini sudah punya proses approval.");
+
+            var requester = await _employeeRepository.GetByIdAsync(requesterEmployeeId)
+                ?? throw new NotFoundException("Employee pengaju tidak ditemukan.");
+
+            var flow = await _repository.GetActiveFlowStepsAsync(ApprovalRequestTypes.PersonalAction);
+            var hrFlow = flow.FirstOrDefault(f => f.ApproverType == ApproverType.Role && f.RoleId is not null);
+            if (hrFlow is null)
+                throw new BadRequestException("Alur Personal Action belum memiliki langkah HR.");
+
+            var steps = new List<ApprovalStep>();
+            void AddManager(int? managerId)
+            {
+                if (managerId is null || managerId == requesterEmployeeId) return;
+                if (steps.Any(s => s.ApproverEmployeeId == managerId)) return;
+                steps.Add(new ApprovalStep
+                {
+                    Level = steps.Count + 1,
+                    ApproverType = ApproverType.Employee,
+                    ApproverEmployeeId = managerId
+                });
+            }
+
+            AddManager(oldManagerId);
+            AddManager(newManagerId);
+            steps.Add(new ApprovalStep
+            {
+                Level = steps.Count + 1,
+                ApproverType = ApproverType.Role,
+                ApproverRoleId = hrFlow.RoleId
+            });
+
+            var request = new ApprovalRequest
+            {
+                RequestType = ApprovalRequestTypes.PersonalAction,
+                RequestRefId = requestRefId,
+                RequesterId = requesterEmployeeId,
+                Summary = summary,
+                Status = ApprovalRequestStatus.Pending,
+                CurrentLevel = 1,
+                Steps = steps
+            };
+            await _repository.AddAsync(request);
+            await NotifyApproversAsync(request, steps[0], requester.FullName);
+            var created = await _repository.GetByIdAsync(request.Id);
+            return ToDto(created!, null);
+        });
+    }
+
     // ================= Baca =================
 
     public async Task<ApprovalRequestResponseDto> GetByIdAsync(int approvalId, UserContext actor)

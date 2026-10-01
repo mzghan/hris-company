@@ -123,3 +123,23 @@ dotnet ef database update
 dotnet run
 ```
 
+
+
+## Batch E: Evaluasi & PAF (modul 11-14)
+
+- **Employee Evaluation (11)** — `REF_Evaluation_Type` + `TRX_Employee_Evaluation`, `TRX_Evaluation_Entry`, `TRX_Evaluation_Score`. Seeder menyiapkan Probation 1/3/5 bulan dan Contract Based. Evaluasi dibuat untuk employment aktif yang sesuai; due date probation dihitung dari `start_date + month_offset`, sedangkan Contract Based mengikuti `contract_end_date` bila tersedia.
+- **Performance Management (12)** — `TRX_Performance_Plan` + `TRX_Plan_Task` + `TRX_Plan_WorkLog`. Karyawan dapat membuat plan untuk dirinya dan mengisi work log; manager/HR/Support dapat membantu plan dan task sesuai akses.
+- **Competency (13)** — `REF_Competency` + `TRX_Employee_Competency` + `TRX_Competency_Assessment`. Atasan langsung/HR/Support menetapkan target; karyawan mengisi self-assessment.
+- **PAF (14)** — `TRX_Personal_Action` menyimpan perubahan terstruktur (`new_organization_id`, `new_job_title_id`, `new_job_level_id`, `new_grade_id`, `new_location_id`, `new_manager_id`). Approval disnapshot saat submit dengan urutan manager lama → manager baru → HR. Setelah Approved, Service dalam transaction menutup Employment/Hierarchy lama dan membuat baris baru sesuai `effective_date`.
+- **UI** — halaman baru `/Evaluations/Index`, `/Performance/Index`, `/Competencies/Index`, `/PersonalActions/Index` ditambahkan ke sidebar Performance.
+- **API** — `/api/evaluations`, `/api/performance`, `/api/competencies`, `/api/personal-actions`.
+
+### Migration Batch E
+
+```powershell
+Remove-Item hris.db* -Force -ErrorAction SilentlyContinue
+dotnet ef database update
+dotnet run
+```
+
+Untuk development baru, database boleh di-reset agar seluruh migration 0 → E dijalankan dari awal.

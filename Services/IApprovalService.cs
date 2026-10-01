@@ -9,6 +9,7 @@ public interface IApprovalService
     // dan disimpan sebagai snapshot. requestedDays dipakai langkah yang punya min_requested_days.
     Task<ApprovalRequestResponseDto> SubmitAsync(
         string requestType, int requestRefId, int requesterEmployeeId, string summary, int? requestedDays = null);
+    Task<ApprovalRequestResponseDto> SubmitPersonalActionAsync(int requestRefId, int requesterEmployeeId, int? oldManagerId, int? newManagerId, string summary);
 
     Task<ApprovalRequestResponseDto> GetByIdAsync(int approvalId, UserContext actor);
     Task<Dictionary<int, ApprovalRequestResponseDto>> GetByRefsAsync(string requestType, IEnumerable<int> requestRefIds, UserContext? actor = null);
