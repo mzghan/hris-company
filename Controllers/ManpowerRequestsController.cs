@@ -16,6 +16,13 @@ public class ManpowerRequestsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()=>Ok(await _service.GetAsync(User.ToUserContext()));
 
+    [HttpGet("vacancies")]
+    public async Task<IActionResult> Vacancies()=>Ok(await _service.GetVacanciesAsync(User.ToUserContext()));
+
+    [HttpPost("{id}/filings")]
+    [RequestSizeLimit(10_000_000)]
+    public async Task<IActionResult> Filing(int id,[FromForm] string fileType,[FromForm] Microsoft.AspNetCore.Http.IFormFile file){await _service.AddFilingAsync(id,fileType,file,User.ToUserContext());return Ok();}
+
     [HttpPost]
     public async Task<IActionResult> Create(ManpowerRequestCreateDto dto)=>Ok(await _service.CreateAsync(dto,User.ToUserContext()));
 }

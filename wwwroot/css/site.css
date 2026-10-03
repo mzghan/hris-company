@@ -255,3 +255,10 @@ body {
         min-width: 720px;
     }
 }
+
+/* HRManpower nested navigation */
+.sidebar-group { margin: 0; }
+.sidebar-group > summary { list-style: none; cursor: pointer; }
+.sidebar-group > summary::-webkit-details-marker { display:none; }
+.sidebar-subnav { padding-left: 18px; }
+.sidebar-sublink { font-size: .82rem; padding-top: .35rem; padding-bottom: .35rem; }

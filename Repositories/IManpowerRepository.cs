@@ -6,4 +6,7 @@ public interface IManpowerRepository
     Task<ManpowerRequest?> GetByIdAsync(int id);
     Task<ManpowerRequest> AddAsync(ManpowerRequest x);
     Task UpdateAsync(ManpowerRequest x);
+    Task<List<ManpowerVacancy>> GetVacanciesAsync();
+    Task AddRemarkAsync(ManpowerRequestRemark remark);
+    Task AddFilingAsync(ManpowerRequestFiling filing);
 }

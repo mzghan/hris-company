@@ -1,0 +1,15 @@
+@page
+@model HRIS.Api.Pages.JobDescriptions.SignModel
+@{ ViewData["Title"] = "Sign Job Description"; }
+<div class="page-heading"><div><div class="text-muted small">Form JD</div><h4 class="mb-1">Sign Job Description</h4><p class="text-muted mb-0">@Model.Code - @Model.JobTitle</p></div></div>
+<div class="card p-3" style="max-width:720px">
+    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+    <form method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <input type="hidden" name="mode" value="@Model.RoleMode" />
+        <div class="mb-3"><label class="form-label">Peran</label><select class="form-select" disabled><option>@(Model.RoleMode == "manager" ? "Immediate Manager" : "Job Holder")</option></select></div>
+        <div class="mb-3"><label asp-for="Signature" class="form-label">Signature</label><input asp-for="Signature" class="form-control" placeholder="Ketik nama sebagai tanda tangan" /></div>
+        <button class="btn btn-primary">Simpan Tanda Tangan</button>
+        <a asp-page="/JobDescriptions/Index" class="btn btn-outline-secondary">Kembali</a>
+    </form>
+</div>

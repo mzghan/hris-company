@@ -5,7 +5,8 @@
     var roleText = isAuth ? string.Join(", ", User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value)) : null;
     var isHrOrSupport = isAuth && (User.IsInRole("HR") || User.IsInRole("Support"));
     var isEmployee = isAuth && User.IsInRole("Employee");
-    var isManager = isAuth && User.HasClaim("IsManager", "true");
+    var isManager = isAuth && (User.HasClaim("IsManager", "true") || User.IsInRole("Manager") || User.IsInRole("Head"));
+    var isHrManpower = isAuth && (isHrOrSupport || User.IsInRole("HRBP") || User.IsInRole("OE") || User.IsInRole("Admin") || User.IsInRole("TA") || User.IsInRole("Manager") || User.IsInRole("Head") || User.IsInRole("INTERN"));
 
     var unreadCount = 0;
     if (isAuth && int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId))
@@ -46,18 +47,70 @@
             <a class="sidebar-link" asp-page="/Notifications/Index"><span class="sidebar-icon">◔</span>Notifikasi @if(unreadCount>0){<span class="badge bg-danger ms-auto">@unreadCount</span>}</a>
             <a class="sidebar-link" asp-page="/Approvals/Index"><span class="sidebar-icon">✓</span>Approval</a>
 
-            @if (isHrOrSupport)
+            @if (isHrManpower)
             {
                 <div class="sidebar-section">People &amp; Organization</div>
                 <a class="sidebar-link" asp-page="/Employees/Index"><span class="sidebar-icon">♙</span>Karyawan</a>
                 <a class="sidebar-link" asp-page="/Organizations/Index"><span class="sidebar-icon">⌘</span>Organisasi</a>
-                <a class="sidebar-link" asp-page="/Manpower/Index"><span class="sidebar-icon">+</span>Manpower Request</a>
+                <details class="sidebar-group" open>
+                    <summary class="sidebar-link"><span class="sidebar-icon">✓</span>Approval List</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="pending">Pending Approval</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="history">History</a>
+                    </div>
+                </details>
+                <details class="sidebar-group">
+                    <summary class="sidebar-link"><span class="sidebar-icon">JD</span>Form JD</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="input">Form Input JD</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="submitted">Submitted JD</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="sign-job-holder">Sign as Job Holder</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="sign-manager">Sign as Immediate Manager</a>
+                    </div>
+                </details>
+                <details class="sidebar-group">
+                    <summary class="sidebar-link"><span class="sidebar-icon">▤</span>JD Management</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="bank-signature">List Bank JD with Signature</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="bank">List Bank JD</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="pending">List Pending JD</a>
+                    </div>
+                </details>
+                <details class="sidebar-group">
+                    <summary class="sidebar-link"><span class="sidebar-icon">✓</span>Manpower Approval</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="manpower-pending">Pending Approval</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="manpower-history">History Approved Request</a>
+                    </div>
+                </details>
+                <details class="sidebar-group">
+                    <summary class="sidebar-link"><span class="sidebar-icon">+</span>Manpower Request</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="new-headcount">Request New Headcount</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="replacement">Request Replacement</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="history">History Request</a>
+                    </div>
+                </details>
                 <a class="sidebar-link" asp-page="/Leave/Manage"><span class="sidebar-icon">▣</span>Kelola Cuti</a>
             }
             else if (isManager)
             {
                 <div class="sidebar-section">People</div>
-                <a class="sidebar-link" asp-page="/Manpower/Index"><span class="sidebar-icon">+</span>Manpower Request</a>
+                <details class="sidebar-group" open>
+                    <summary class="sidebar-link"><span class="sidebar-icon">+</span>Manpower Request</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="new-headcount">Request New Headcount</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="replacement">Request Replacement</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="history">History Request</a>
+                    </div>
+                </details>
+                <details class="sidebar-group">
+                    <summary class="sidebar-link"><span class="sidebar-icon">JD</span>Form JD</summary>
+                    <div class="sidebar-subnav">
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="input">Form Input JD</a>
+                        <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="submitted">Submitted JD</a>
+                    </div>
+                </details>
             }
 
             @if (isEmployee)

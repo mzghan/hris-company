@@ -13,6 +13,7 @@ public static class ApprovalRequestTypes
     public const string Laptop = "Laptop";
     public const string PersonalAction = "PersonalAction";
     public const string Manpower = "Manpower";
+    public const string JobDescription = "JobDescription";
 
     public static string Label(string type) => type switch
     {
@@ -25,6 +26,7 @@ public static class ApprovalRequestTypes
         Laptop => "Kepemilikan Laptop",
         PersonalAction => "Personal Action",
         Manpower => "Permintaan Tenaga Kerja",
+        JobDescription => "Job Description",
         _ => type
     };
 

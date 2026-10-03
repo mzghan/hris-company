@@ -47,6 +47,7 @@ builder.Services.AddScoped<IServiceAwardRepository, ServiceAwardRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IFlexibleBenefitRepository, FlexibleBenefitRepository>();
 builder.Services.AddScoped<IManpowerRepository, ManpowerRepository>();
+builder.Services.AddScoped<IJobDescriptionRepository, JobDescriptionRepository>();
 builder.Services.AddScoped<IEvaluationRepository, EvaluationRepository>();
 builder.Services.AddScoped<IPerformanceRepository, PerformanceRepository>();
 builder.Services.AddScoped<ICompetencyRepository, CompetencyRepository>();
@@ -65,6 +66,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
+builder.Services.AddScoped<IJobDescriptionService, JobDescriptionService>();
 
 // --- Batch A: approval engine, notifikasi, dokumen, audit log ---
 // Tiap modul yang memakai approval engine mendaftarkan satu IApprovalHandler untuk request_type-nya.

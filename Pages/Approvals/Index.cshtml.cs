@@ -31,6 +31,8 @@ public class IndexModel : PageModel
     public ApprovalTableViewModel MyTable => new(MyRequests, false, true, "Belum ada pengajuan.");
     public ApprovalTableViewModel AllTable => new(AllPending, true, false, "Tidak ada pengajuan yang sedang berjalan.");
 
+    [BindProperty(SupportsGet = true)] public string? View { get; set; }
+
     public async Task OnGetAsync()
     {
         var actor = User.ToUserContext();

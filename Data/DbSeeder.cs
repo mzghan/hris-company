@@ -109,13 +109,17 @@ public static class DbSeeder
 
     private static async Task SeedReferenceDataAsync(AppDbContext db)
     {
-        if (!await db.Roles.AnyAsync())
+        // Role dibuat idempotent: jangan hanya mengisi saat tabel kosong,
+        // karena database lama bisa sudah memiliki Employee/HR/Support.
+        var requiredRoles = new[]
         {
-            db.Roles.AddRange(
-                new Role { RoleName = RoleNames.Employee },
-                new Role { RoleName = RoleNames.HR },
-                new Role { RoleName = RoleNames.Support });
-        }
+            RoleNames.Employee, RoleNames.HR, RoleNames.Support,
+            RoleNames.HRBP, RoleNames.OE, RoleNames.Manager, RoleNames.Head,
+            RoleNames.Admin, RoleNames.TA, RoleNames.INTERN
+        };
+        var existingRoleNames = await db.Roles.Select(r => r.RoleName).ToListAsync();
+        foreach (var roleName in requiredRoles.Where(r => !existingRoleNames.Contains(r)))
+            db.Roles.Add(new Role { RoleName = roleName });
 
         if (!await db.HierarchyTypes.AnyAsync())
             db.HierarchyTypes.AddRange(
@@ -279,10 +283,7 @@ public static class DbSeeder
     // alurnya (manager lama -> manager baru -> HR) dikerjakan di Batch E.
     private static async Task SeedApprovalFlowAsync(AppDbContext db)
     {
-        if (await db.ApprovalFlowSteps.AnyAsync()) return;
-
         var hrRoleId = (await db.Roles.FirstAsync(r => r.RoleName == RoleNames.HR)).Id;
-
         ApprovalFlowStep Chain(string type, int level, int depth, int? minDays = null) => new()
         {
             RequestType = type, Level = level, ApproverType = ApproverType.ManagerChain,
@@ -293,25 +294,31 @@ public static class DbSeeder
             RequestType = type, Level = level, ApproverType = ApproverType.Role, RoleId = hrRoleId
         };
 
-        db.ApprovalFlowSteps.AddRange(
-            // Leave: atasan langsung; cuti panjang (>= 6 hari kerja, angka perkiraan) ditambah Head.
-            Chain(ApprovalRequestTypes.Leave, 1, 1),
-            Chain(ApprovalRequestTypes.Leave, 2, 2, minDays: 6),
+        if (!await db.ApprovalFlowSteps.AnyAsync())
+        {
+            db.ApprovalFlowSteps.AddRange(
+                Chain(ApprovalRequestTypes.Leave, 1, 1),
+                Chain(ApprovalRequestTypes.Leave, 2, 2, minDays: 6),
+                Chain(ApprovalRequestTypes.Manpower, 1, 1),
+                Chain(ApprovalRequestTypes.Manpower, 2, 2),
+                HrRole(ApprovalRequestTypes.Manpower, 3),
+                HrRole(ApprovalRequestTypes.FamilyChange, 1),
+                HrRole(ApprovalRequestTypes.LeaveEncashment, 1),
+                HrRole(ApprovalRequestTypes.HealthClaim, 1),
+                HrRole(ApprovalRequestTypes.Letter, 1),
+                HrRole(ApprovalRequestTypes.Parking, 1),
+                HrRole(ApprovalRequestTypes.Laptop, 1));
+            await db.SaveChangesAsync();
+        }
 
-            // Manpower: atasan -> Head -> HR.
-            Chain(ApprovalRequestTypes.Manpower, 1, 1),
-            Chain(ApprovalRequestTypes.Manpower, 2, 2),
-            HrRole(ApprovalRequestTypes.Manpower, 3),
-
-            // Benefit, Letter, Parking: HR. Laptop: HR, lalu status lanjutan oleh Support (Batch C).
-            HrRole(ApprovalRequestTypes.FamilyChange, 1),
-            HrRole(ApprovalRequestTypes.LeaveEncashment, 1),
-            HrRole(ApprovalRequestTypes.HealthClaim, 1),
-            HrRole(ApprovalRequestTypes.Letter, 1),
-            HrRole(ApprovalRequestTypes.Parking, 1),
-            HrRole(ApprovalRequestTypes.Laptop, 1));
-
-        await db.SaveChangesAsync();
+        if (!await db.ApprovalFlowSteps.AnyAsync(x => x.RequestType == ApprovalRequestTypes.JobDescription))
+        {
+            db.ApprovalFlowSteps.AddRange(
+                Chain(ApprovalRequestTypes.JobDescription, 1, 1),
+                Chain(ApprovalRequestTypes.JobDescription, 2, 2),
+                HrRole(ApprovalRequestTypes.JobDescription, 3));
+            await db.SaveChangesAsync();
+        }
     }
 
 

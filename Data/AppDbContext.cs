@@ -104,6 +104,13 @@ public class AppDbContext : DbContext
     public DbSet<HealthClaim> HealthClaims => Set<HealthClaim>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<ManpowerRequest> ManpowerRequests => Set<ManpowerRequest>();
+    public DbSet<JobDescription> JobDescriptions => Set<JobDescription>();
+    public DbSet<JobDescriptionBank> JobDescriptionBanks => Set<JobDescriptionBank>();
+    public DbSet<JobDescriptionMaster> JobDescriptionMasters => Set<JobDescriptionMaster>();
+    public DbSet<JobDescriptionRevision> JobDescriptionRevisions => Set<JobDescriptionRevision>();
+    public DbSet<ManpowerRequestRemark> ManpowerRequestRemarks => Set<ManpowerRequestRemark>();
+    public DbSet<ManpowerRequestFiling> ManpowerRequestFilings => Set<ManpowerRequestFiling>();
+    public DbSet<ManpowerVacancy> ManpowerVacancies => Set<ManpowerVacancy>();
     public DbSet<EmployeeEvaluation> EmployeeEvaluations => Set<EmployeeEvaluation>();
     public DbSet<EvaluationEntry> EvaluationEntries => Set<EvaluationEntry>();
     public DbSet<EvaluationScore> EvaluationScores => Set<EvaluationScore>();
@@ -212,6 +219,13 @@ public class AppDbContext : DbContext
         MapTable<HealthClaim>(modelBuilder, "TRX_Health_Claim", "claim_id");
         MapTable<RoomBooking>(modelBuilder, "TRX_Room_Booking", "booking_id");
         MapTable<ManpowerRequest>(modelBuilder, "TRX_Manpower_Request", "manpower_id");
+        MapTable<JobDescription>(modelBuilder, "TRN_Jobdesc", "jobdesc_id");
+        MapTable<JobDescriptionBank>(modelBuilder, "BANK_JOBDESC", "bank_jobdesc_id");
+        MapTable<JobDescriptionMaster>(modelBuilder, "MST_JOBDESC", "mst_jobdesc_id");
+        MapTable<JobDescriptionRevision>(modelBuilder, "TRN_Revise_History_JD", "revision_id");
+        MapTable<ManpowerRequestRemark>(modelBuilder, "TRX_Manpower_Request_Remarks", "remark_id");
+        MapTable<ManpowerRequestFiling>(modelBuilder, "TRX_Manpower_Request_Filing", "filing_id");
+        MapTable<ManpowerVacancy>(modelBuilder, "TRX_Manpower_Vacancy", "vacancy_id");
         MapTable<EmployeeEvaluation>(modelBuilder, "TRX_Employee_Evaluation", "evaluation_id");
         MapTable<EvaluationEntry>(modelBuilder, "TRX_Evaluation_Entry", "entry_id");
         MapTable<EvaluationScore>(modelBuilder, "TRX_Evaluation_Score", "score_id");
@@ -223,6 +237,9 @@ public class AppDbContext : DbContext
         MapTable<PersonalAction>(modelBuilder, "TRX_Personal_Action", "paf_id");
         modelBuilder.Entity<RoomBooking>().Property(x => x.BookedByEmployeeId).HasColumnName("booked_by");
         modelBuilder.Entity<ManpowerRequest>().Property(x => x.RequestedByEmployeeId).HasColumnName("requested_by");
+        modelBuilder.Entity<JobDescription>().HasIndex(x => x.Code).IsUnique();
+        modelBuilder.Entity<ManpowerVacancy>().HasIndex(x => x.VacancyCode).IsUnique();
+        modelBuilder.Entity<ManpowerVacancy>().HasIndex(x => new { x.ManpowerRequestId, x.PositionNo }).IsUnique();
 
         // --- Enum disimpan sebagai string di SQLite, biar gampang dibaca manual saat debug ---
         modelBuilder.Entity<LeaveRequest>().Property(l => l.Status).HasConversion<string>();

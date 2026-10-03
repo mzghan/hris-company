@@ -143,3 +143,24 @@ dotnet run
 ```
 
 Untuk development baru, database boleh di-reset agar seluruh migration 0 → E dijalankan dari awal.
+
+
+## Batch F: HR Manpower & Job Description
+
+- **Job Description** — `/JobDescriptions/Index`: Form Input JD, draft/submit, JD history/bank, revision snapshot, approval, Job Holder/Immediate Manager signature fields, and six-section print layout that can be saved as PDF from the browser.
+- **JD storage** — `TRN_Jobdesc`, `BANK_JOBDESC`, `MST_JOBDESC`, `TRN_Revise_History_JD`.
+- **Manpower Request** — New Headcount and Replacement, replacement employee, Report To, FTE/Outsource, Job Description reference, approval phase, remarks, filing metadata, and generated vacancies.
+- **Vacancy** — approved MRF automatically creates one `TRX_Manpower_Vacancy` row per requested headcount; HR/Support can read them from `GET /api/manpower-requests/vacancies`.
+- **Approval** — current approval engine is reused. Because this HRIS database currently has only `Employee`, `HR`, and `Support` roles and does not contain HRBP/OE/CHRO/DoF/BOD/President Director master mappings, the runnable flow uses ManagerChain(1) → ManagerChain(2) → HR as the configured fallback. The richer approver roles from the reference system are not silently fabricated.
+- **Migration** — apply `20261003160000_BatchF_ManpowerAndJobDescription` after the existing Batch E migration. If generating migrations locally instead, the equivalent command is `dotnet ef migrations add BatchF_ManpowerAndJobDescription`.
+
+## Important: regenerate EF migration metadata
+
+The original Batch F patch contained the migration operations but not the generated `.Designer.cs` / updated model snapshot.
+After copying this patch into the project root, run:
+
+```powershell
+.\Regenerate-BatchF.ps1
+```
+
+This uses the project's installed EF Core tooling to generate the official Batch F `.Designer.cs` and update `AppDbContextModelSnapshot.cs` from the actual model. Do not use a hand-written/dummy Designer file.

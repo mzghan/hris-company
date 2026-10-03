@@ -1,0 +1,11 @@
+@page "{id:int}"
+@model HRIS.Api.Pages.JobDescriptions.PrintModel
+<!doctype html><html><head><meta charset="utf-8"><title>@Model.Item.Code - @Model.Item.JobTitle</title><style>body{font-family:Arial,sans-serif;margin:32px;line-height:1.4}section{min-height:900px;page-break-after:always}h1{font-size:22px}h2{font-size:16px;border-bottom:1px solid #999;padding-bottom:5px}.box{white-space:pre-wrap}.sign{margin-top:80px;display:flex;justify-content:space-around}.muted{color:#666}@@media print{.no-print{display:none}}</style></head><body>
+<div class="no-print"><button onclick="window.print()">Print / Save as PDF</button></div>
+<section><h1>@Model.Item.JobTitle</h1><p class="muted">@Model.Item.Code</p><h2>Job Information</h2><div class="box">@Model.Item.Purpose</div><h2>Reporting Relationship</h2><div class="box">@Model.Item.ReportingRelationship</div></section>
+<section><h2>Dimensions</h2><div class="box">@Model.Item.Dimensions</div><h2>KRA CICO</h2><div class="box">@Model.Item.KriCico</div><h2>Compliance</h2><div class="box">@Model.Item.KriCompliance</div></section>
+<section><h2>KRA / KPI</h2><div class="box">@Model.Item.KriAreas</div></section>
+<section><h2>Stakeholders</h2><div class="box">@Model.Item.Stakeholders</div><h2>Challenges</h2><div class="box">@Model.Item.Challenges</div></section>
+<section><h2>Qualifications</h2><div class="box">@Model.Item.Qualifications</div><h2>Experience</h2><div class="box">@Model.Item.Experience</div><h2>Competencies</h2><div class="box">@Model.Item.Competencies</div></section>
+<section><h2>Signatures</h2><div class="sign"><div>Job Holder<br/><br/>@Model.Item.JobHolderSignatureText</div><div>Immediate Manager<br/><br/>@Model.Item.ManagerSignatureText</div></div></section>
+</body></html>

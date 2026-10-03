@@ -5,10 +5,12 @@
 }
 
 <div class="page-heading">
-    <div><div class="text-muted small">Modul 18</div><h4 class="mb-1">Manpower Request</h4><p class="text-muted mb-0">Pengajuan kebutuhan tenaga kerja mengikuti rantai Manager → Head → HR.</p></div>
+    <div class="d-flex justify-content-between align-items-start gap-3">
+    <div><div class="text-muted small">HRManpower / Manpower Request</div><h4 class="mb-1">@((Model.View ?? "history") switch { "new-headcount" => "Request New Headcount", "replacement" => "Request Replacement", _ => "History Request" })</h4><p class="text-muted mb-0">Pengajuan kebutuhan tenaga kerja dengan approval bertingkat.</p></div>
+    </div>
 </div>
 
-@if(Model.CanSubmit)
+@if(Model.CanSubmit && (Model.View == "new-headcount" || Model.View == "replacement"))
 {
 <div class="card p-3 mb-3">
     <h6>Pengajuan Baru</h6>
@@ -19,8 +21,14 @@
         <div class="col-md-2"><label class="form-label small">Job Level</label><select asp-for="Input.JobLevelId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.JobLevels){<option value="@x.Id">@x.Name</option>}</select></div>
         <div class="col-md-2"><label class="form-label small">Tipe</label><select asp-for="Input.EmploymentTypeId" class="form-select form-select-sm"><option value="">Pilih</option>@foreach(var x in Model.EmploymentTypes){<option value="@x.Id">@x.Name</option>}</select></div>
         <div class="col-md-2"><label class="form-label small">Headcount</label><input asp-for="Input.Headcount" type="number" min="1" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><label class="form-label small">Request</label><select asp-for="Input.RequestType" class="form-select form-select-sm" disabled="@(Model.View == "replacement" ? null : "disabled")"><option value="NewHeadcount">New Headcount</option><option value="Replacement">Replacement</option></select>
+        @if (Model.View == "replacement") { <input type="hidden" asp-for="Input.RequestType" value="Replacement" /> }</div>
+        <div class="col-md-2"><label class="form-label small">Status</label><select asp-for="Input.WorkStatus" class="form-select form-select-sm"><option value="FTE">FTE</option><option value="Outsource">Outsource</option></select></div>
+        <div class="col-md-3"><label class="form-label small">Replacement For</label><select asp-for="Input.ReplacementForEmployeeId" class="form-select form-select-sm"><option value="">-</option>@foreach(var e in Model.Employees){<option value="@e.Id">@e.EmployeeNumber - @e.FullName</option>}</select></div>
+        <div class="col-md-3"><label class="form-label small">Report To</label><select asp-for="Input.ReportToEmployeeId" class="form-select form-select-sm"><option value="">-</option>@foreach(var e in Model.Employees){<option value="@e.Id">@e.FullName</option>}</select></div>
+        <div class="col-md-3"><label class="form-label small">Job Description</label><select asp-for="Input.JobDescriptionId" class="form-select form-select-sm"><option value="">-</option>@foreach(var jd in Model.JobDescriptions){<option value="@jd.Id">@jd.Code - @jd.JobTitle</option>}</select></div>
         <div class="col-md-3"><label class="form-label small">Target Date</label><input asp-for="Input.TargetDate" type="date" class="form-control form-control-sm" /></div>
-        <div class="col-md-9"><label class="form-label small">Alasan</label><input asp-for="Input.Reason" class="form-control form-control-sm" /></div>
+        <div class="col-md-6"><label class="form-label small">Alasan</label><input asp-for="Input.Reason" class="form-control form-control-sm" /></div>
         <div class="col-12"><button class="btn btn-primary btn-sm">Ajukan Manpower</button></div>
     </form>
 </div>
@@ -30,13 +38,13 @@
     <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Daftar Pengajuan</h6><span class="small text-muted">@Model.Requests.Count data</span></div>
     <div class="table-responsive">
         <table class="table table-hover table-sm align-middle mb-0">
-            <thead><tr><th>Pengaju</th><th>Organisasi</th><th>Jabatan</th><th>Level</th><th>Headcount</th><th>Target</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Pengaju</th><th>Organisasi</th><th>Jabatan</th><th>Level</th><th>Request</th><th>Headcount</th><th>Target</th><th>Status</th><th></th></tr></thead>
             <tbody>
             @foreach(var x in Model.Requests)
             {
-                <tr><td>@x.RequestedByName</td><td>@x.OrganizationName</td><td>@x.JobTitleName</td><td>@x.JobLevelName</td><td>@x.Headcount</td><td>@x.TargetDate.ToString("dd MMM yyyy")</td><td><span class="status-@x.Status">@x.Status</span></td><td>@if(x.ApprovalId is not null){<a asp-page="/Approvals/Index" class="small">Approval</a>}</td></tr>
+                <tr><td>@x.RequestedByName</td><td>@x.OrganizationName</td><td>@x.JobTitleName</td><td>@x.JobLevelName</td><td>@x.RequestType</td><td>@x.Headcount</td><td>@x.TargetDate.ToString("dd MMM yyyy")</td><td><span class="status-@x.Status">@x.Status</span></td><td>@if(x.ApprovalId is not null){<a asp-page="/Approvals/Index" class="small">Approval</a>}</td></tr>
             }
-            @if(!Model.Requests.Any()){<tr><td colspan="8" class="text-center text-muted py-3">Belum ada manpower request.</td></tr>}
+            @if(!Model.Requests.Any()){<tr><td colspan="9" class="text-center text-muted py-3">Belum ada manpower request.</td></tr>}
             </tbody>
         </table>
     </div>
