@@ -262,3 +262,111 @@ body {
 .sidebar-group > summary::-webkit-details-marker { display:none; }
 .sidebar-subnav { padding-left: 18px; }
 .sidebar-sublink { font-size: .82rem; padding-top: .35rem; padding-bottom: .35rem; }
+
+
+/* ===== Manpower / JD sidebar hierarchy ===== */
+.sidebar-group {
+    margin: 5px 0;
+    border-radius: 9px;
+}
+
+.sidebar-group > summary {
+    list-style: none;
+    cursor: pointer;
+    position: relative;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.055);
+}
+
+.sidebar-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sidebar-group > summary::marker {
+    display: none;
+    content: "";
+}
+
+.sidebar-group > summary:hover,
+.sidebar-group > summary:focus-visible {
+    color: #fff;
+    background: var(--sidebar-active);
+    border-color: rgba(255,255,255,.12);
+}
+
+.sidebar-parent-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sidebar-chevron {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    margin-right: 4px;
+    border-right: 2px solid #b9c5d1;
+    border-bottom: 2px solid #b9c5d1;
+    transform: rotate(-45deg);
+    transition: transform .18s ease;
+}
+
+.sidebar-group[open] > summary .sidebar-chevron {
+    transform: rotate(45deg);
+    margin-top: -4px;
+}
+
+.sidebar-subnav {
+    position: relative;
+    margin: 2px 0 7px 20px;
+    padding: 4px 0 4px 12px;
+    border-left: 2px solid rgba(148,163,184,.34);
+}
+
+.sidebar-subnav::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(148,163,184,.16);
+}
+
+.sidebar-sublink {
+    position: relative;
+    min-height: 35px;
+    margin: 2px 0;
+    padding: 7px 9px 7px 15px;
+    color: #aebbc8;
+    font-size: .84rem;
+    border-radius: 6px;
+}
+
+.sidebar-sublink::before {
+    content: "";
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    width: 9px;
+    height: 1px;
+    background: rgba(148,163,184,.55);
+}
+
+.sidebar-sublink:hover,
+.sidebar-sublink:focus-visible {
+    color: #fff;
+    background: rgba(255,255,255,.09);
+}
+
+.sidebar-sublink[aria-current="page"] {
+    color: #fff;
+    background: rgba(59,130,246,.20);
+    font-weight: 600;
+}
+
+.sidebar-group[open] > summary {
+    background: rgba(255,255,255,.075);
+    border-color: rgba(255,255,255,.10);
+}

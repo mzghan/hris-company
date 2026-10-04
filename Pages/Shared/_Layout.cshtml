@@ -52,15 +52,22 @@
                 <div class="sidebar-section">People &amp; Organization</div>
                 <a class="sidebar-link" asp-page="/Employees/Index"><span class="sidebar-icon">♙</span>Karyawan</a>
                 <a class="sidebar-link" asp-page="/Organizations/Index"><span class="sidebar-icon">⌘</span>Organisasi</a>
-                <details class="sidebar-group" open>
-                    <summary class="sidebar-link"><span class="sidebar-icon">✓</span>Approval List</summary>
+                var currentPath = Context.Request.Path.Value ?? string.Empty;
+                var currentView = Context.Request.Query["view"].ToString();
+                var approvalListOpen = currentPath.StartsWith("/Approvals", StringComparison.OrdinalIgnoreCase) && !currentView.StartsWith("manpower-", StringComparison.OrdinalIgnoreCase);
+                var formJdOpen = currentPath.StartsWith("/JobDescriptions", StringComparison.OrdinalIgnoreCase);
+                var jdManagementOpen = formJdOpen && (currentView == "bank-signature" || currentView == "bank" || currentView == "pending");
+                var manpowerApprovalOpen = currentPath.StartsWith("/Approvals", StringComparison.OrdinalIgnoreCase) && currentView.StartsWith("manpower-", StringComparison.OrdinalIgnoreCase);
+                var manpowerRequestOpen = currentPath.StartsWith("/Manpower", StringComparison.OrdinalIgnoreCase);
+                <details class="sidebar-group" @(approvalListOpen ? "open" : "")>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">✓</span><span class="sidebar-parent-label">Approval List</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="pending">Pending Approval</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="history">History</a>
                     </div>
                 </details>
-                <details class="sidebar-group">
-                    <summary class="sidebar-link"><span class="sidebar-icon">JD</span>Form JD</summary>
+                <details class="sidebar-group" @(formJdOpen && !jdManagementOpen ? "open" : "")>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">JD</span><span class="sidebar-parent-label">Form JD</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="input">Form Input JD</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="submitted">Submitted JD</a>
@@ -68,23 +75,23 @@
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="sign-manager">Sign as Immediate Manager</a>
                     </div>
                 </details>
-                <details class="sidebar-group">
-                    <summary class="sidebar-link"><span class="sidebar-icon">▤</span>JD Management</summary>
+                <details class="sidebar-group" @(jdManagementOpen ? "open" : "")>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">▤</span><span class="sidebar-parent-label">JD Management</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="bank-signature">List Bank JD with Signature</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="bank">List Bank JD</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="pending">List Pending JD</a>
                     </div>
                 </details>
-                <details class="sidebar-group">
-                    <summary class="sidebar-link"><span class="sidebar-icon">✓</span>Manpower Approval</summary>
+                <details class="sidebar-group" @(manpowerApprovalOpen ? "open" : "")>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">✓</span><span class="sidebar-parent-label">Manpower Approval</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="manpower-pending">Pending Approval</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/Approvals/Index" asp-route-view="manpower-history">History Approved Request</a>
                     </div>
                 </details>
-                <details class="sidebar-group">
-                    <summary class="sidebar-link"><span class="sidebar-icon">+</span>Manpower Request</summary>
+                <details class="sidebar-group" @(manpowerRequestOpen ? "open" : "")>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">+</span><span class="sidebar-parent-label">Manpower Request</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="new-headcount">Request New Headcount</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="replacement">Request Replacement</a>
@@ -97,7 +104,7 @@
             {
                 <div class="sidebar-section">People</div>
                 <details class="sidebar-group" open>
-                    <summary class="sidebar-link"><span class="sidebar-icon">+</span>Manpower Request</summary>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">+</span><span class="sidebar-parent-label">Manpower Request</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="new-headcount">Request New Headcount</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/Manpower/Index" asp-route-view="replacement">Request Replacement</a>
@@ -105,7 +112,7 @@
                     </div>
                 </details>
                 <details class="sidebar-group">
-                    <summary class="sidebar-link"><span class="sidebar-icon">JD</span>Form JD</summary>
+                    <summary class="sidebar-link sidebar-parent"><span class="sidebar-icon">JD</span><span class="sidebar-parent-label">Form JD</span><span class="sidebar-chevron" aria-hidden="true"></span></summary>
                     <div class="sidebar-subnav">
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="input">Form Input JD</a>
                         <a class="sidebar-link sidebar-sublink" asp-page="/JobDescriptions/Index" asp-route-view="submitted">Submitted JD</a>

@@ -72,36 +72,44 @@ public static class DbSeeder
         }
 
         // --- 3. Data dummy perusahaan ---
-        // Guard-nya "apakah sudah ada Employee", bukan "apakah ada User" — supaya
-        // kalau sebelumnya hanya akun Support yang berhasil dibuat, run berikutnya
-        // tetap mencoba seed ulang data dummy-nya.
-        if (await db.Employees.AnyAsync())
-            return;
-
-        try
+        // Jika perusahaan belum memiliki Employee, buat data dummy awal. Kalau sudah ada,
+        // jangan diulang; tetapi seed akun workflow tetap dijalankan di bawah.
+        if (!await db.Employees.AnyAsync())
         {
-            // Satu transaction eksplisit: semua Service/Repository di bawah berjalan
-            // di atas AppDbContext yang sama (satu scope DI), jadi kalau ada yang
-            // gagal di tengah, semua baris yang sempat ter-insert ikut di-rollback.
-            await using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                await SeedCompanyDataAsync(services, db, support, logger);
-                await transaction.CommitAsync();
+                // Satu transaction eksplisit: semua Service/Repository di bawah berjalan
+                // di atas AppDbContext yang sama (satu scope DI), jadi kalau ada yang
+                // gagal di tengah, semua baris yang sempat ter-insert ikut di-rollback.
+                await using var transaction = await db.Database.BeginTransactionAsync();
+                try
+                {
+                    await SeedCompanyDataAsync(services, db, support, logger);
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                throw;
+                logger.LogError(ex, "Gagal seed data dummy perusahaan. Support tetap bisa login & input data manual. " +
+                    "Akan dicoba lagi otomatis saat aplikasi di-restart.");
             }
+        }
+
+        // --- 4. Akun workflow JD/Manpower ---
+        // Selalu dijalankan agar database lama yang sudah memiliki Employee tetap
+        // mendapatkan role dan user baru tanpa perlu reset database.
+        try
+        {
+            await EnsureWorkflowUsersAsync(services, db);
         }
         catch (Exception ex)
         {
-            // Data dummy sengaja tidak menggagalkan startup aplikasi: akun Support
-            // tetap bisa login dan input data manual. Akan dicoba lagi otomatis
-            // saat aplikasi di-restart.
-            logger.LogError(ex, "Gagal seed data dummy perusahaan. Support tetap bisa login & input data manual. " +
-                "Akan dicoba lagi otomatis saat aplikasi di-restart.");
+            logger.LogError(ex, "Gagal menambahkan akun workflow JD/Manpower.");
         }
     }
 
@@ -109,17 +117,22 @@ public static class DbSeeder
 
     private static async Task SeedReferenceDataAsync(AppDbContext db)
     {
-        // Role dibuat idempotent: jangan hanya mengisi saat tabel kosong,
-        // karena database lama bisa sudah memiliki Employee/HR/Support.
+        // Upsert role satu per satu agar database lama yang sudah memiliki Employee/HR/Support
+        // tetap mendapatkan role workflow baru tanpa reset database.
         var requiredRoles = new[]
         {
             RoleNames.Employee, RoleNames.HR, RoleNames.Support,
-            RoleNames.HRBP, RoleNames.OE, RoleNames.Manager, RoleNames.Head,
-            RoleNames.Admin, RoleNames.TA, RoleNames.INTERN
+            RoleNames.HRBP, RoleNames.OE, RoleNames.AVPOE,
+            RoleNames.CHRO, RoleNames.DoF, RoleNames.PresidentDirector,
+            RoleNames.TA, RoleNames.Admin, RoleNames.Manager, RoleNames.Head, RoleNames.INTERN
         };
         var existingRoleNames = await db.Roles.Select(r => r.RoleName).ToListAsync();
-        foreach (var roleName in requiredRoles.Where(r => !existingRoleNames.Contains(r)))
-            db.Roles.Add(new Role { RoleName = roleName });
+        var missingRoles = requiredRoles
+            .Where(name => !existingRoleNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Select(name => new Role { RoleName = name })
+            .ToList();
+        if (missingRoles.Count > 0)
+            db.Roles.AddRange(missingRoles);
 
         if (!await db.HierarchyTypes.AnyAsync())
             db.HierarchyTypes.AddRange(
@@ -283,41 +296,107 @@ public static class DbSeeder
     // alurnya (manager lama -> manager baru -> HR) dikerjakan di Batch E.
     private static async Task SeedApprovalFlowAsync(AppDbContext db)
     {
-        var hrRoleId = (await db.Roles.FirstAsync(r => r.RoleName == RoleNames.HR)).Id;
-        ApprovalFlowStep Chain(string type, int level, int depth, int? minDays = null) => new()
-        {
-            RequestType = type, Level = level, ApproverType = ApproverType.ManagerChain,
-            ChainDepth = depth, MinRequestedDays = minDays
-        };
-        ApprovalFlowStep HrRole(string type, int level) => new()
-        {
-            RequestType = type, Level = level, ApproverType = ApproverType.Role, RoleId = hrRoleId
-        };
+        async Task<int> RoleIdAsync(string name) =>
+            await db.Roles.Where(r => r.RoleName == name).Select(r => r.Id).FirstAsync();
 
-        if (!await db.ApprovalFlowSteps.AnyAsync())
+        async Task ResetFlowAsync(string requestType, params ApprovalFlowStep[] steps)
         {
-            db.ApprovalFlowSteps.AddRange(
-                Chain(ApprovalRequestTypes.Leave, 1, 1),
-                Chain(ApprovalRequestTypes.Leave, 2, 2, minDays: 6),
-                Chain(ApprovalRequestTypes.Manpower, 1, 1),
-                Chain(ApprovalRequestTypes.Manpower, 2, 2),
-                HrRole(ApprovalRequestTypes.Manpower, 3),
-                HrRole(ApprovalRequestTypes.FamilyChange, 1),
-                HrRole(ApprovalRequestTypes.LeaveEncashment, 1),
-                HrRole(ApprovalRequestTypes.HealthClaim, 1),
-                HrRole(ApprovalRequestTypes.Letter, 1),
-                HrRole(ApprovalRequestTypes.Parking, 1),
-                HrRole(ApprovalRequestTypes.Laptop, 1));
+            var old = await db.ApprovalFlowSteps.Where(x => x.RequestType == requestType).ToListAsync();
+            if (old.Count > 0)
+                db.ApprovalFlowSteps.RemoveRange(old);
+
+            db.ApprovalFlowSteps.AddRange(steps);
             await db.SaveChangesAsync();
         }
 
-        if (!await db.ApprovalFlowSteps.AnyAsync(x => x.RequestType == ApprovalRequestTypes.JobDescription))
+        var hrbpRoleId = await RoleIdAsync(RoleNames.HRBP);
+        var oeRoleId = await RoleIdAsync(RoleNames.OE);
+        var avpOeRoleId = await RoleIdAsync(RoleNames.AVPOE);
+        var chroRoleId = await RoleIdAsync(RoleNames.CHRO);
+        var dofRoleId = await RoleIdAsync(RoleNames.DoF);
+        var presidentRoleId = await RoleIdAsync(RoleNames.PresidentDirector);
+        var hrRoleId = await RoleIdAsync(RoleNames.HR);
+
+        // JD: Line Manager -> HRBP -> OE Analyst -> AVP OE.
+        await ResetFlowAsync(ApprovalRequestTypes.JobDescription,
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.JobDescription, Level = 1, ApproverType = ApproverType.ManagerChain, ChainDepth = 1 },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.JobDescription, Level = 2, ApproverType = ApproverType.Role, RoleId = hrbpRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.JobDescription, Level = 3, ApproverType = ApproverType.Role, RoleId = oeRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.JobDescription, Level = 4, ApproverType = ApproverType.Role, RoleId = avpOeRoleId });
+
+        // Manpower: atasan level 1 -> atasan level 2 -> HRBP -> OE -> CHRO -> DoF -> President Director.
+        await ResetFlowAsync(ApprovalRequestTypes.Manpower,
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 1, ApproverType = ApproverType.ManagerChain, ChainDepth = 1 },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 2, ApproverType = ApproverType.ManagerChain, ChainDepth = 2 },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 3, ApproverType = ApproverType.Role, RoleId = hrbpRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 4, ApproverType = ApproverType.Role, RoleId = oeRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 5, ApproverType = ApproverType.Role, RoleId = chroRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 6, ApproverType = ApproverType.Role, RoleId = dofRoleId },
+            new ApprovalFlowStep { RequestType = ApprovalRequestTypes.Manpower, Level = 7, ApproverType = ApproverType.Role, RoleId = presidentRoleId });
+
+        // Flow modul lama tetap memakai HR sebagai approver. Hanya JD/Manpower yang diganti.
+        _ = hrRoleId;
+    }
+
+    private static async Task EnsureWorkflowUsersAsync(IServiceProvider services, AppDbContext db)
+    {
+        var authService = services.GetRequiredService<IAuthService>();
+        var employeeService = services.GetRequiredService<IEmployeeService>();
+
+        var permanentId = await db.EmploymentTypes.Where(x => x.EmploymentTypeName == "Permanent").Select(x => x.Id).FirstAsync();
+        var activeId = await db.EmploymentStatuses.Where(x => x.EmploymentStatusName == "Active").Select(x => x.Id).FirstAsync();
+        var indonesiaId = await db.Countries.Where(x => x.CountryCode == "ID").Select(x => x.Id).FirstAsync();
+        var locationId = await db.Locations.Select(x => x.Id).FirstAsync();
+        var hrOrgId = await db.Organizations.Where(x => x.OrganizationName == "Human Resources").Select(x => x.Id).FirstAsync();
+        var levelId = await db.JobLevels.Where(x => x.JobLevelName == "Senior Staff").Select(x => x.Id).FirstAsync();
+        var titleId = await db.JobTitles.Where(x => x.JobTitleName == "HR Staff").Select(x => x.Id).FirstAsync();
+        var gradeId = await db.Grades.Where(x => x.GradeLevel == 3).Select(x => x.Id).FirstAsync();
+
+        var definitions = new[]
         {
-            db.ApprovalFlowSteps.AddRange(
-                Chain(ApprovalRequestTypes.JobDescription, 1, 1),
-                Chain(ApprovalRequestTypes.JobDescription, 2, 2),
-                HrRole(ApprovalRequestTypes.JobDescription, 3));
-            await db.SaveChangesAsync();
+            (Username: "hrbp", Name: "Workflow HRBP", Email: "hrbp@contoh.co.id", Role: RoleNames.HRBP),
+            (Username: "oe", Name: "Workflow OE Analyst", Email: "oe@contoh.co.id", Role: RoleNames.OE),
+            (Username: "avpoe", Name: "Workflow AVP OE", Email: "avpoe@contoh.co.id", Role: RoleNames.AVPOE),
+            (Username: "chro", Name: "Workflow CHRO", Email: "chro@contoh.co.id", Role: RoleNames.CHRO),
+            (Username: "dof", Name: "Workflow DoF", Email: "dof@contoh.co.id", Role: RoleNames.DoF),
+            (Username: "presdir", Name: "Workflow President Director", Email: "presdir@contoh.co.id", Role: RoleNames.PresidentDirector),
+            (Username: "ta", Name: "Workflow Talent Acquisition", Email: "ta@contoh.co.id", Role: RoleNames.TA),
+            (Username: "admin", Name: "Workflow HR Admin", Email: "admin@contoh.co.id", Role: RoleNames.Admin),
+            (Username: "manager", Name: "Workflow Manager", Email: "manager@contoh.co.id", Role: RoleNames.Manager),
+            (Username: "head", Name: "Workflow Head", Email: "head@contoh.co.id", Role: RoleNames.Head),
+            (Username: "intern", Name: "Workflow Intern", Email: "intern@contoh.co.id", Role: RoleNames.INTERN)
+        };
+
+        const string password = "Password123!";
+        foreach (var d in definitions)
+        {
+            if (await db.Users.AnyAsync(u => u.Username == d.Username))
+                continue;
+
+            var employee = await employeeService.CreateAsync(new EmployeeCreateDto
+            {
+                EmployeeNumber = $"WF-{d.Username.ToUpperInvariant()}",
+                FullName = d.Name,
+                WorkEmail = d.Email,
+                JoinDate = new DateOnly(2026, 1, 1),
+                NationalityCountryId = indonesiaId,
+                EmploymentTypeId = permanentId,
+                EmploymentStatusId = activeId,
+                OrganizationId = hrOrgId,
+                LocationId = locationId,
+                JobTitleId = titleId,
+                JobLevelId = levelId,
+                GradeId = gradeId,
+                DirectManagerId = null
+            });
+
+            await authService.RegisterAsync(new RegisterDto
+            {
+                Username = d.Username,
+                Password = password,
+                Roles = new List<string> { d.Role },
+                EmployeeId = employee.Id
+            }, actorIsSupport: true);
         }
     }
 

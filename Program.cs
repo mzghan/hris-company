@@ -78,6 +78,7 @@ builder.Services.AddScoped<IApprovalHandler, LaptopApprovalHandler>();
 builder.Services.AddScoped<IApprovalHandler, LeaveEncashmentApprovalHandler>();
 builder.Services.AddScoped<IApprovalHandler, HealthClaimApprovalHandler>();
 builder.Services.AddScoped<IApprovalHandler, ManpowerApprovalHandler>();
+builder.Services.AddScoped<IApprovalHandler, JobDescriptionApprovalHandler>();
 builder.Services.AddScoped<IApprovalHandler, PersonalActionApprovalHandler>();
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
